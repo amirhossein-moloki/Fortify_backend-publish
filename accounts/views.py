@@ -17,7 +17,7 @@ from django_ratelimit.decorators import ratelimit  # اضافه کردن دکو�
 
 # ویو ثبت‌نام کاربر
 class RegisterAPIView(APIView):
-    @ratelimit(key='ip', rate='5/m', method='ALL', burst=True)  # محدود کردن به 5 درخواست در دقیقه
+    @ratelimit(key='ip', rate='5/m', method='ALL')  # محدود کردن به 5 درخواست در دقیقه
     def post(self, request):
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
@@ -52,7 +52,7 @@ class RegisterAPIView(APIView):
 
 # ویو ورود کاربر (Login) با JWT
 class LoginAPIView(APIView):
-    @ratelimit(key='ip', rate='5/m', method='ALL', burst=True)  # محدود کردن به 5 درخواست در دقیقه
+    @ratelimit(key='ip', rate='5/m', method='ALL')  # محدود کردن به 5 درخواست در دقیقه
     def post(self, request):
         username = request.data.get('username')
         password = request.data.get('password')
@@ -73,7 +73,7 @@ class LoginAPIView(APIView):
 
 # ویو تایید ایمیل
 class ActivateEmailAPIView(APIView):
-    @ratelimit(key='ip', rate='5/m', method='ALL', burst=True)  # محدود کردن به 5 درخواست در دقیقه
+    @ratelimit(key='ip', rate='5/m', method='ALL')  # محدود کردن به 5 درخواست در دقیقه
     def get(self, request, uidb64, token):
         try:
             uid = force_str(urlsafe_base64_decode(uidb64))  # تبدیل رشته به force_str
@@ -90,7 +90,7 @@ class ActivateEmailAPIView(APIView):
 
 # ویو برای بازیابی رمز عبور
 class PasswordResetAPIView(APIView):
-    @ratelimit(key='ip', rate='5/m', method='ALL', burst=True)  # محدود کردن به 5 درخواست در دقیقه
+    @ratelimit(key='ip', rate='5/m', method='ALL')  # محدود کردن به 5 درخواست در دقیقه
     def post(self, request):
         email = request.data.get('email')
         form = PasswordResetForm(data={'email': email})
@@ -119,7 +119,7 @@ class PasswordResetAPIView(APIView):
 
 # ویو تایید بازیابی رمز عبور
 class PasswordResetConfirmAPIView(APIView):
-    @ratelimit(key='ip', rate='5/m', method='ALL', burst=True)  # محدود کردن به 5 درخواست در دقیقه
+    @ratelimit(key='ip', rate='5/m', method='ALL')  # محدود کردن به 5 درخواست در دقیقه
     def get(self, request, uidb64, token):
         try:
             uid = force_str(urlsafe_base64_decode(uidb64))  # تبدیل رشته به force_str
@@ -134,7 +134,7 @@ class PasswordResetConfirmAPIView(APIView):
 
 # ویو برای تغییر رمز عبور
 class PasswordChangeAPIView(APIView):
-    @ratelimit(key='ip', rate='5/m', method='ALL', burst=True)  # محدود کردن به 5 درخواست در دقیقه
+    @ratelimit(key='ip', rate='5/m', method='ALL')  # محدود کردن به 5 درخواست در دقیقه
     def post(self, request, uidb64, token):
         password = request.data.get('password')
         try:
@@ -153,7 +153,7 @@ class PasswordChangeAPIView(APIView):
 # ویو برای آپدیت پروفایل کاربری با JWT
 class UpdateProfileAPIView(APIView):
     permission_classes = [IsAuthenticated]
-    @ratelimit(key='ip', rate='5/m', method='ALL', burst=True)  # محدود کردن به 5 درخواست در دقیقه
+    @ratelimit(key='ip', rate='5/m', method='ALL')  # محدود کردن به 5 درخواست در دقیقه
     def put(self, request):
         user = request.user
         profile_data = request.data.get('profile', {})
@@ -174,7 +174,7 @@ class UpdateProfileAPIView(APIView):
 # ویو برای خروج کاربر
 class LogoutAPIView(APIView):
     permission_classes = [IsAuthenticated]
-    @ratelimit(key='ip', rate='5/m', method='ALL', burst=True)  # محدود کردن به 5 درخواست در دقیقه
+    @ratelimit(key='ip', rate='5/m', method='ALL')  # محدود کردن به 5 درخواست در دقیقه
     def post(self, request):
         refresh_token = request.data.get('refresh_token')
         try:
@@ -188,7 +188,7 @@ class LogoutAPIView(APIView):
 # ویو برای حذف حساب کاربری
 class DeleteAccountAPIView(APIView):
     permission_classes = [IsAuthenticated]
-    @ratelimit(key='ip', rate='5/m', method='ALL', burst=True)  # محدود کردن به 5 درخواست در دقیقه
+    @ratelimit(key='ip', rate='5/m', method='ALL')  # محدود کردن به 5 درخواست در دقیقه
     def delete(self, request):
         user = request.user
         user.delete()
