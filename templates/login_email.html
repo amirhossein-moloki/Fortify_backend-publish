@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ورود به Fortify</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f4;">
+    <table cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1);">
+        <tr>
+            <td style="padding: 40px;">
+                <h2 style="color: #007bff; text-align: center; margin-bottom: 30px;">ورود به Fortify</h2>
+                
+                <form action="{login_action_url}" method="post" style="max-width: 400px; margin: 0 auto;">
+                    <div style="margin-bottom: 20px;">
+                        <label for="email" style="display: block; margin-bottom: 5px; font-weight: bold;">ایمیل:</label>
+                        <input type="email" id="email" name="email" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 16px;">
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <label for="password" style="display: block; margin-bottom: 5px; font-weight: bold;">رمز عبور:</label>
+                        <input type="password" id="password" name="password" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 16px;">
+                    </div>
+                    
+                    <div style="text-align: center;">
+                        <button type="submit" style="background-color: #007bff; color: #ffffff; border: none; padding: 12px 24px; font-size: 18px; border-radius: 4px; cursor: pointer;">ورود</button>
+                    </div>
+                </form>
+                
+                <p style="text-align: center; margin-top: 20px;">
+                    <a href="{forgot_password_url}" style="color: #007bff; text-decoration: none;">رمز عبور خود را فراموش کرده‌اید؟</a>
+                </p>
+                
+                <p style="text-align: center; margin-top: 20px;">
+                    حساب کاربری ندارید؟ <a href="{signup_url}" style="color: #007bff; text-decoration: none;">ثبت‌نام کنید</a>
+                </p>
+                
+                <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+                
+                <p style="font-size: 14px; color: #666; text-align: center;">
+                    اگر سؤالی دارید، لطفاً با تیم پشتیبانی ما در 
+                    <a href="mailto:{support_email}" style="color: #007bff; text-decoration: none;">
+                        {support_email}
+                    </a>
+                    تماس بگیرید.
+                </p>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
