@@ -8,7 +8,7 @@ from django.core.mail import send_mail
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_str
-from accounts.models import User
+from .models import User
 from django.http import Http404
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from .serializers import UserSerializer, ProfileSerializer, LoginSerializer, RegisterSerializer
@@ -165,30 +165,36 @@ class ActivateEmailAPIView(APIView):
 
 # ویو برای بازیابی رمز عبور
 class PasswordResetAPIView(APIView):
-
+    permission_classes = [AllowAny]
     def post(self, request):
         email = request.data.get('email')
         form = PasswordResetForm(data={'email': email})
 
         if form.is_valid():
-            user = form.get_users(email)[0]
+            user = next(form.get_users(email), None)
             token = default_token_generator.make_token(user)
             uid = urlsafe_base64_encode(str(user.pk).encode())
             reset_link = f'http://yourdomain.com/reset-password/{uid}/{token}/'
 
             # ارسال ایمیل با قالب HTML
             email_subject = 'Password Reset'
-            email_message = f'<p>Click the link to reset your password: <a href="{reset_link}">Reset Password</a></p>'
+            email_message = render_to_string('reset_password_email.html', {
+                'reset_link': reset_link,
+                'support_email': 'support@yourdomain.com',
+                'user_name': user.username,
+            })
+
             send_mail(
                 email_subject,
-                email_message,
-                'admin@example.com',
+                '',  # متن ساده را خالی می‌گذاریم چون فقط قالب HTML ارسال می‌شود.
+                'no-reply@yourdomain.com',
                 [user.email],
                 fail_silently=False,
                 html_message=email_message  # ایمیل با قالب HTML
             )
 
             return Response({"message": "Password reset email sent."}, status=status.HTTP_200_OK)
+
         return Response({"message": "Invalid email address."}, status=status.HTTP_400_BAD_REQUEST)
 
 
