@@ -1,3 +1,303 @@
-from django.shortcuts import render
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from django.contrib.auth import authenticate
+from django.core.mail import send_mail
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_str
+from .models import User
+from django.http import Http404
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from .serializers import UserSerializer, ProfileSerializer, LoginSerializer, RegisterSerializer
+from django.contrib.auth.forms import PasswordResetForm
+from django_ratelimit.decorators import ratelimit
+from django.template.loader import render_to_string
+import logging
+from django.contrib.auth import login
+import random
+import string
+from django.utils import timezone
+from datetime import timedelta
+from rest_framework.permissions import AllowAny
+logger = logging.getLogger(__name__)
 
-# Create your views here.
+class RegisterAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        # Validate input data using the serializer
+        serializer = RegisterSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+
+            # Generate JWT tokens
+            refresh = RefreshToken.for_user(user)
+            access_token = str(refresh.access_token)
+
+            # Generate email verification token
+            token = default_token_generator.make_token(user)
+            uid = urlsafe_base64_encode(str(user.pk).encode())
+            verification_link = f'http://localhost:8000/accounts/activate-email/{uid}/{token}/'  # Use https in production
+
+            # Define URLs for login and forgot password
+            login_action_url = 'http://yourdomain.com/login'  # Use https in production
+            forgot_password_url = 'http://yourdomain.com/forgot-password'  # Use https in production
+
+            email_subject = 'Welcome to Fortify - Confirm Your Email'
+
+            # Generate the email HTML content
+            try:
+                email_message = render_to_string('signup_email.html', {
+                    'verification_link': verification_link,
+                    'support_email': 'support@example.com',
+                    'user_name': user.username,
+                    'login_action_url': login_action_url,
+                    'forgot_password_url': forgot_password_url
+                })
+
+                # Send the email
+                send_mail(
+                    email_subject,
+                    '',  # No plain text as it's HTML email
+                    'no-reply@fortify.com',  # Sender's email
+                    [user.email],
+                    fail_silently=False,
+                    html_message=email_message  # Send the HTML content
+                )
+
+            except Exception as e:
+                logger.error(f"Error sending email: {e}")
+                return Response({"message": "Error sending confirmation email."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            # Return the response to the client
+            return Response({
+                "message": "Please confirm your email address to complete the registration.",
+                "access_token": access_token
+            }, status=status.HTTP_201_CREATED)
+
+        # If serializer is not valid, return errors
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class LoginAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def generate_otp(self, length=6):
+        """ تولید یک کد OTP تصادفی """
+        characters = string.ascii_letters + string.digits
+        otp = ''.join(random.choice(characters) for i in range(length))
+        return otp
+
+    def post(self, request):
+        # استفاده از سریالایزر برای اعتبارسنجی داده‌ها
+        serializer = LoginSerializer(data=request.data)
+        if serializer.is_valid():
+            username = serializer.validated_data.get('username')
+            password = serializer.validated_data.get('password')
+
+            # تلاش برای شناسایی کاربر با نام کاربری و رمز عبور
+            user = authenticate(username=username, password=password)
+            if user is not None:
+                if user.is_active:
+                    # تولید کد OTP برای ورود
+                    otp = self.generate_otp()
+
+                    # ذخیره OTP و تاریخ انقضا (10 دقیقه)
+                    user.otp = otp
+                    user.otp_expiration = timezone.now() + timedelta(minutes=10)
+                    user.save()
+
+
+                    otp_link = f'http://localhost:8000/accounts/login-verify/{otp}/'
+                    email_subject = 'Login Attempt - OTP Verification'
+                    email_message = render_to_string('login_email.html', {
+                        'otp': otp,
+                        'user_name': user.username,
+                        'otp_link': otp_link,
+                        'support_email': 'support@yourdomain.com',
+                    })
+
+                    send_mail(
+                        email_subject,
+                        '',  # متن ساده را خالی می‌گذاریم چون فقط قالب HTML ارسال می‌شود.
+                        'no-reply@yourdomain.com',
+                        [user.email],
+                        fail_silently=False,
+                        html_message=email_message
+                    )
+
+                    return Response({
+                        "message": "Login successful! Please check your email for the OTP link."
+                    }, status=status.HTTP_200_OK)
+
+                else:
+                    return Response({
+                        "message": "Account is not active. Please check your email for activation."
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+            return Response({
+                "message": "Invalid credentials."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+# ویو تایید ایمیل
+class ActivateEmailAPIView(APIView):
+    permission_classes = [AllowAny]
+    def get(self, request, uidb64, token):
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))  # تبدیل رشته به force_str
+            user = User.objects.get(pk=uid)
+            if default_token_generator.check_token(user, token):
+                user.is_active = True
+                user.save()
+                return Response({"message": "Email successfully confirmed!"}, status=status.HTTP_200_OK)
+            else:
+                return Response({"message": "Invalid token."}, status=status.HTTP_400_BAD_REQUEST)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            return Response({"message": "Invalid token or user does not exist."}, status=status.HTTP_400_BAD_REQUEST)
+
+
+# ویو برای بازیابی رمز عبور
+class PasswordResetAPIView(APIView):
+    permission_classes = [AllowAny]
+    def post(self, request):
+        email = request.data.get('email')
+        form = PasswordResetForm(data={'email': email})
+
+        if form.is_valid():
+            user = next(form.get_users(email), None)
+            token = default_token_generator.make_token(user)
+            uid = urlsafe_base64_encode(str(user.pk).encode())
+            reset_link = f'http://yourdomain.com/reset-password/{uid}/{token}/'
+
+            # ارسال ایمیل با قالب HTML
+            email_subject = 'Password Reset'
+            email_message = render_to_string('reset_password_email.html', {
+                'reset_link': reset_link,
+                'support_email': 'support@yourdomain.com',
+                'user_name': user.username,
+            })
+
+            send_mail(
+                email_subject,
+                '',  # متن ساده را خالی می‌گذاریم چون فقط قالب HTML ارسال می‌شود.
+                'no-reply@yourdomain.com',
+                [user.email],
+                fail_silently=False,
+                html_message=email_message  # ایمیل با قالب HTML
+            )
+
+            return Response({"message": "Password reset email sent."}, status=status.HTTP_200_OK)
+
+        return Response({"message": "Invalid email address."}, status=status.HTTP_400_BAD_REQUEST)
+
+
+# ویو تایید بازیابی رمز عبور
+class PasswordResetConfirmAPIView(APIView):
+
+    def get(self, request, uidb64, token):
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))  # تبدیل رشته به force_str
+            user = User.objects.get(pk=uid)
+            if default_token_generator.check_token(user, token):
+                return Response({"message": "Token is valid. You can reset your password."}, status=status.HTTP_200_OK)
+            else:
+                return Response({"message": "Invalid token."}, status=status.HTTP_400_BAD_REQUEST)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            return Response({"message": "Invalid token or user does not exist."}, status=status.HTTP_400_BAD_REQUEST)
+
+
+# ویو برای تغییر رمز عبور
+class PasswordChangeAPIView(APIView):
+
+    def post(self, request, uidb64, token):
+        password = request.data.get('password')
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))  # تبدیل رشته به force_str
+            user = User.objects.get(pk=uid)
+            if default_token_generator.check_token(user, token):
+                user.set_password(password)
+                user.save()
+                return Response({"message": "Password changed successfully!"}, status=status.HTTP_200_OK)
+            else:
+                return Response({"message": "Invalid token."}, status=status.HTTP_400_BAD_REQUEST)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            return Response({"message": "Invalid token or user does not exist."}, status=status.HTTP_400_BAD_REQUEST)
+
+
+# ویو برای آپدیت پروفایل کاربری با JWT
+class UpdateProfileAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request):
+        user = request.user
+        profile_data = request.data.get('profile', {})
+
+        # بررسی وجود پروفایل کاربر
+        if not hasattr(user, 'profile'):
+            return Response({"message": "Profile does not exist."}, status=status.HTTP_404_NOT_FOUND)
+
+        # آپدیت پروفایل
+        profile_serializer = ProfileSerializer(user.profile, data=profile_data, partial=True)
+
+        if profile_serializer.is_valid():
+            profile_serializer.save()
+            return Response({"message": "Profile updated successfully!"}, status=status.HTTP_200_OK)
+        return Response(profile_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# ویو برای خروج کاربر
+class LogoutAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        refresh_token = request.data.get('refresh_token')
+        try:
+            token = RefreshToken(refresh_token)
+            token.blacklist()  # غیرفعال کردن توکن
+            return Response({"message": "Logout successful!"}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"message": "Invalid token."}, status=status.HTTP_400_BAD_REQUEST)
+
+
+# ویو برای حذف حساب کاربری
+class DeleteAccountAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+    def delete(self, request):
+        user = request.user
+        user.delete()
+        return Response({"message": "Account deleted successfully!"}, status=status.HTTP_204_NO_CONTENT)
+
+
+class OTPVerifyAPIView(APIView):
+    permission_classes = [AllowAny]
+    def get(self, request, otp):
+        try:
+            # جستجوی کاربر بر اساس کد OTP
+            user = User.objects.get(otp=otp)
+
+            # بررسی اعتبار OTP
+            if user.is_otp_valid():
+                # اعتبار سنجی موفق
+                login(request, user)  # ورود کاربر
+                user.otp = None  # پس از ورود، OTP پاک می‌شود
+                user.save()
+
+                return Response({
+                    "message": "Login successful!"
+                }, status=status.HTTP_200_OK)
+            else:
+                return Response({
+                    "message": "OTP expired or invalid."
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+        except User.DoesNotExist:
+            return Response({
+                "message": "Invalid OTP."
+            }, status=status.HTTP_400_BAD_REQUEST)
