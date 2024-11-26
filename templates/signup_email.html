@@ -1,49 +1,49 @@
 <!DOCTYPE html>
-<html lang="fa" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>به Fortify خوش آمدید</title>
+    <title>Welcome to Fortify</title>
 </head>
-<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0;">
-    <table cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; margin: 0 auto;">
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f0f4f8;">
+    <table cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1);">
         <tr>
-            <td style="padding: 20px;">
-                <h2 style="color: #007bff; text-align: center;">به Fortify خوش آمدید</h2>
-                <p style="text-align: right;">از پیوستن شما به <b>Fortify</b>، پیشرو در نوآوری و تعالی، سپاسگزاریم.</p>
-                <p style="text-align: right;">برای تکمیل ثبت‌نام و تأیید آدرس ایمیل خود، لطفاً روی دکمه زیر کلیک کنید:</p>
+            <td style="padding: 40px;">
+                <h2 style="color: #2c3e50; text-align: center; margin-bottom: 30px;">Welcome to Fortify</h2>
+                <p style="text-align: left; color: #34495e;">Thank you for joining <b>Fortify</b>, a leader in innovation and excellence.</p>
+                <p style="text-align: left; color: #34495e;">To complete your registration and verify your email address, please click the button below:</p>
                 
-                <!-- محل قرارگیری GIF -->
-                <div style="text-align: center; margin: 20px 0;">
-                    <img src="https://example.com/path-to-your-gif.gif" alt="تصویر تأیید ایمیل" style="max-width: 100%; height: auto;">
+                <!-- GIF placement -->
+                <div style="text-align: center; margin: 30px 0;">
+                    <img src="https://example.com/path-to-your-gif.gif" alt="Email Verification Image" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
                 </div>
                 
-                <div style="text-align: center; margin: 20px 0;">
-                    <a href="{verification_link}" 
+                <!-- Verify Email Button -->
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="{{ verification_link }}"
                        style="display: inline-block; padding: 15px 25px; font-size: 18px; 
-                              color: #fff; background-color: #007bff; text-decoration: none; 
-                              border-radius: 5px; font-weight: bold;">
-                       تأیید ایمیل شما
+                              color: #ffffff; background-color: #3498db; text-decoration: none; 
+                              border-radius: 5px; font-weight: bold; transition: background-color 0.3s ease;">
+                       Verify Your Email
                     </a>
                 </div>
                 
-                <p style="text-align: right; margin-top: 20px;">
-                    اگر شما درخواست ایجاد حساب کاربری در Fortify را نداده‌اید، لطفاً این ایمیل را نادیده بگیرید.
+                <p style="text-align: left; margin-top: 20px; color: #7f8c8d;">
+                    If you did not request to create an account on Fortify, please ignore this email.
                 </p>
                 
-                <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+                <hr style="border: none; border-top: 1px solid #ecf0f1; margin: 30px 0;">
                 
-                <p style="font-size: 14px; color: #666; text-align: right;">
-                    اگر سؤالی دارید، لطفاً با تیم پشتیبانی ما در 
-                    <a href="mailto:{support_email}" style="color: #007bff; text-decoration: none;">
-                        {support_email}
+                <p style="font-size: 14px; color: #7f8c8d; text-align: left;">
+                    If you have any questions, please contact our support team at 
+                    <a href="mailto:{{ support_email }}" style="color: #3498db; text-decoration: none;">
+                        {{ support_email }}
                     </a>
-                    تماس بگیرید.
                 </p>
                 
-                <p style="font-size: 14px; color: #666; text-align: right;">
-                    با احترام،<br>
-                    تیم Fortify
+                <p style="font-size: 14px; color: #7f8c8d; text-align: left;">
+                    Best regards,<br>
+                    The Fortify Team
                 </p>
             </td>
         </tr>

@@ -8,12 +8,14 @@ from .views import (
     PasswordChangeAPIView,
     UpdateProfileAPIView,
     LogoutAPIView,
-    DeleteAccountAPIView
+    DeleteAccountAPIView,
+    OTPVerifyAPIView
 )
 
 urlpatterns = [
     path('register/', RegisterAPIView.as_view(), name='register'),  # ثبت‌نام کاربر
     path('login/', LoginAPIView.as_view(), name='login'),  # ورود کاربر
+    path('login-verify/<str:otp>/', OTPVerifyAPIView.as_view(), name='otp-verify'),
     path('activate-email/<str:uidb64>/<str:token>/', ActivateEmailAPIView.as_view(), name='activate-email'),  # تایید ایمیل
     path('password-reset/', PasswordResetAPIView.as_view(), name='password-reset'),  # درخواست بازیابی رمز عبور
     path('reset-password/<str:uidb64>/<str:token>/', PasswordResetConfirmAPIView.as_view(), name='password-reset-confirm'),  # تایید بازیابی رمز عبور

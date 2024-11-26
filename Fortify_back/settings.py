@@ -109,6 +109,14 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.ScopedRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '5/min',
+        'user': '10/min',
+        'custom_scope': '20/hour',  # نرخ خاص برای یک ویو خاص
+    }
 }
 
 # JWT Token Expiry Time Settings (Optional)
@@ -127,10 +135,8 @@ SIMPLE_JWT = {
 # User model settings
 AUTH_USER_MODEL = 'accounts.User'
 
-CORS_ALLOWED_ORIGINS = [
-    "http://example.com",  # دامنه اول
-    "http://anotherdomain.com",  # دامنه دوم
-]
+CORS_ALLOW_ALL_ORIGINS = True
+
 
 CORS_ALLOW_CREDENTIALS = True  # اجازه دادن به کوکی‌ها و اعتبارنامه‌ها
 CORS_ALLOW_METHODS = [
@@ -139,3 +145,13 @@ CORS_ALLOW_METHODS = [
 CORS_ALLOW_HEADERS = [
     'content-type', 'accept', 'Authorization', 'X-Requested-With', 'Access-Control-Allow-Origin',
 ]
+
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 465
+EMAIL_USE_SSL = True  # استفاده از SSL
+EMAIL_USE_TLS = False  # باید False باشد چون SSL استفاده می‌کنید
+EMAIL_HOST_USER = 'amir.moloki8558@gmail.com'  # ایمیل شما
+EMAIL_HOST_PASSWORD = 'drgzueqzrcupbfyr'  # رمز عبور ایمیل
+DEFAULT_FROM_EMAIL = 'amir.moloki8558@gmail.com'

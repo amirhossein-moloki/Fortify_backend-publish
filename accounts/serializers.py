@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from .models import User, Profile
+from django.core.exceptions import ValidationError
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -20,11 +22,6 @@ class ProfileSerializer(serializers.ModelSerializer):
 
 
 
-from rest_framework import serializers
-from django.contrib.auth import get_user_model
-from django.core.exceptions import ValidationError
-
-User = get_user_model()
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True)
@@ -35,33 +32,32 @@ class RegisterSerializer(serializers.ModelSerializer):
         fields = ['username', 'email', 'phone_number', 'password', 'password_confirm']
 
     def validate_username(self, value):
-        """ چک می‌کنیم که یوزرنیم تکراری نباشد """
+        """Check if the username already exists"""
         if User.objects.filter(username=value).exists():
             raise serializers.ValidationError("This username is already taken.")
         return value
 
     def validate_email(self, value):
-        """ چک می‌کنیم که ایمیل تکراری نباشد """
+        """Check if the email already exists"""
         if User.objects.filter(email=value).exists():
             raise serializers.ValidationError("This email is already taken.")
         return value
 
     def validate(self, data):
-        """ چک می‌کنیم که رمز عبور و تایید آن یکی باشند """
+        """Check if the password and confirm password match"""
         if data['password'] != data['password_confirm']:
             raise serializers.ValidationError({"password": "Passwords must match."})
         return data
 
     def create(self, validated_data):
-        """ کاربر جدید را ایجاد می‌کنیم """
+        """Create a new user and hash the password"""
         password = validated_data.pop('password')
+        validated_data.pop('password_confirm', None)  # Remove password_confirm field
+
         user = User(**validated_data)
-        user.set_password(password)  # رمز عبور را هش می‌کنیم
+        user.set_password(password)  # Hash the password before saving
         user.save()
         return user
-
-
-from rest_framework import serializers
 
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField(required=True)
