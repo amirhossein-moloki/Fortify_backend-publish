@@ -158,3 +158,14 @@ EMAIL_USE_TLS = False  # باید False باشد چون SSL استفاده می�
 EMAIL_HOST_USER = 'amir.moloki8558@gmail.com'  # ایمیل شما
 EMAIL_HOST_PASSWORD = 'drgzueqzrcupbfyr'  # رمز عبور ایمیل
 DEFAULT_FROM_EMAIL = 'amir.moloki8558@gmail.com'
+
+
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [('127.0.0.1', 6379)],
+        },
+    },
+}
