@@ -1,12 +1,11 @@
 from django.db import models
-from django.contrib.auth.models import User
+from accounts.models import User
 
-# مدل Chat
 class Chat(models.Model):
     CHAT_TYPES = (
         ('direct', 'Direct Chat'),  # چت ساده
-        ('group', 'Group Chat'),   # گروه
-        ('channel', 'Channel'),    # کانال
+        ('group', 'Group Chat'),    # گروه
+        ('channel', 'Channel'),     # کانال
     )
 
     participants = models.ManyToManyField(User, related_name='chats')
@@ -23,6 +22,7 @@ class Chat(models.Model):
     )
     max_participants = models.IntegerField(default=50)  # حداکثر تعداد اعضا برای گروه‌ها و کانال‌ها
     description = models.TextField(null=True, blank=True)  # توضیحات چت، گروه یا کانال
+    group_image = models.ImageField(upload_to='chat_images/', null=True, blank=True)  # فیلد عکس گروه
 
     def add_participant(self, user):
         if self.chat_type != 'direct' and self.participants.count() >= self.max_participants:
@@ -34,6 +34,7 @@ class Chat(models.Model):
 
     def __str__(self):
         return self.group_name if self.group_name else f"Chat {self.id}"
+
 
 
 # مدل Message
@@ -56,6 +57,11 @@ class Message(models.Model):
         self.content = None
         self.is_deleted = True
         self.save()
+
+    def unread_message_count(self, user):
+        """ تعداد پیام‌های خوانده نشده برای کاربر را در چت محاسبه می‌کند """
+        unread_messages = self.messages.filter(is_read=False).exclude(read_by=user)
+        return unread_messages.count()
 
     def __str__(self):
         return f"Message {self.id} by {self.sender}"
