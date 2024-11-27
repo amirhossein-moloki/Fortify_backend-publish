@@ -28,6 +28,8 @@ INSTALLED_APPS = [
     'rest_framework',  # برای Django REST Framework
     'rest_framework_simplejwt',  # برای JWT
     'corsheaders',  # اضافه کردن corsheaders
+    'channels',
+    'chats',
 ]
 
 MIDDLEWARE = [
@@ -60,7 +62,8 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'Fortify_back.wsgi.application'
+
+ASGI_APPLICATION ='Fortify_back.asgi.application'
 
 # Database
 DATABASES = {
