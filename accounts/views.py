@@ -8,7 +8,7 @@ from django.core.mail import send_mail
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_str
-from .models import User
+from .models import User,Profile
 from django.http import Http404
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from .serializers import UserSerializer, ProfileSerializer, LoginSerializer, RegisterSerializer
@@ -40,7 +40,7 @@ class RegisterAPIView(APIView):
             # Generate email verification token
             token = default_token_generator.make_token(user)
             uid = urlsafe_base64_encode(str(user.pk).encode())
-            verification_link = f'http://localhost:8000/accounts/activate-email/{uid}/{token}/'  # Use https in production
+            verification_link = f'http://localhost:8000/api/accounts/activate-email/{uid}/{token}/'  # Use https in production
 
             # Define URLs for login and forgot password
             login_action_url = 'http://yourdomain.com/login'  # Use https in production
@@ -111,7 +111,7 @@ class LoginAPIView(APIView):
                     user.save()
 
 
-                    otp_link = f'http://localhost:8000/accounts/login-verify/{otp}/'
+                    otp_link = f'http://localhost:8000/api/accounts/login-verify/{otp}/'
                     email_subject = 'Login Attempt - OTP Verification'
                     email_message = render_to_string('login_email.html', {
                         'otp': otp,
@@ -274,30 +274,97 @@ class DeleteAccountAPIView(APIView):
         user.delete()
         return Response({"message": "Account deleted successfully!"}, status=status.HTTP_204_NO_CONTENT)
 
-
 class OTPVerifyAPIView(APIView):
     permission_classes = [AllowAny]
+
     def get(self, request, otp):
         try:
             # جستجوی کاربر بر اساس کد OTP
             user = User.objects.get(otp=otp)
 
+            # بررسی زمان انقضا OTP
+            if user.otp_expiry < timezone.now():
+                return Response({
+                    "message": "OTP expired. Please request a new one."
+                }, status=status.HTTP_400_BAD_REQUEST)
+
             # بررسی اعتبار OTP
             if user.is_otp_valid():
                 # اعتبار سنجی موفق
-                login(request, user)  # ورود کاربر
-                user.otp = None  # پس از ورود، OTP پاک می‌شود
+                # ایجاد توکن JWT
+                refresh = RefreshToken.for_user(user)
+                access_token = refresh.access_token
+
+                # پس از ورود، OTP پاک می‌شود
+                user.otp = None  # OTP را پاک می‌کنیم
+                user.otp_expiry = None  # انقضای OTP را پاک می‌کنیم
                 user.save()
 
+                # بازگرداندن توکن‌ها در پاسخ
                 return Response({
-                    "message": "Login successful!"
+                    "message": "Login successful!",
+                    "access_token": str(access_token),
+                    "refresh_token": str(refresh)
                 }, status=status.HTTP_200_OK)
+
             else:
                 return Response({
-                    "message": "OTP expired or invalid."
+                    "message": "Invalid OTP."
                 }, status=status.HTTP_400_BAD_REQUEST)
 
         except User.DoesNotExist:
             return Response({
                 "message": "Invalid OTP."
             }, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+class UserProfileView(APIView):
+    def get(self, request, user_id):
+        try:
+            # دریافت کاربر بر اساس id
+            user = User.objects.get(id=user_id)
+
+            # دریافت پروفایل کاربر
+            profile = Profile.objects.get(user=user)
+
+            # سریالایز کردن اطلاعات کاربر و پروفایل
+            user_serializer = UserSerializer(user)
+            profile_serializer = ProfileSerializer(profile)
+
+            # بازگرداندن داده‌های سریالایز شده
+            return Response({
+                'user': user_serializer.data,
+                'profile': profile_serializer.data
+            }, status=status.HTTP_200_OK)
+
+        except User.DoesNotExist:
+            return Response({'detail': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+        except Profile.DoesNotExist:
+            return Response({'detail': 'Profile not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+class SearchUserView(APIView):
+    def get(self, request):
+        username = request.query_params.get('username', None)
+        email = request.query_params.get('email', None)
+
+        # جستجو بر اساس username
+        if username:
+            try:
+                user = User.objects.get(username=username)
+                user_serializer = UserSerializer(user)
+                return Response(user_serializer.data, status=status.HTTP_200_OK)
+            except User.DoesNotExist:
+                return Response({'detail': 'User not found with this username.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # جستجو بر اساس email
+        elif email:
+            try:
+                user = User.objects.get(email=email)
+                user_serializer = UserSerializer(user)
+                return Response(user_serializer.data, status=status.HTTP_200_OK)
+            except User.DoesNotExist:
+                return Response({'detail': 'User not found with this email.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # اگر هیچ پارامتر جستجویی مشخص نشده باشد
+        return Response({'detail': 'Please provide either a username or an email.'}, status=status.HTTP_400_BAD_REQUEST)
