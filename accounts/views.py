@@ -282,10 +282,10 @@ class OTPVerifyAPIView(APIView):
             # جستجوی کاربر بر اساس کد OTP
             user = User.objects.get(otp=otp)
 
-            # بررسی زمان انقضا OTP
-            if user.otp_expiry < timezone.now():
+            # بررسی زمان انقضای OTP
+            if not user.otp_expiration or user.otp_expiration < timezone.now():
                 return Response({
-                    "message": "OTP expired. Please request a new one."
+                    "message": "OTP expired or invalid. Please request a new one."
                 }, status=status.HTTP_400_BAD_REQUEST)
 
             # بررسی اعتبار OTP
@@ -297,7 +297,7 @@ class OTPVerifyAPIView(APIView):
 
                 # پس از ورود، OTP پاک می‌شود
                 user.otp = None  # OTP را پاک می‌کنیم
-                user.otp_expiry = None  # انقضای OTP را پاک می‌کنیم
+                user.otp_expiration = None  # انقضای OTP را پاک می‌کنیم
                 user.save()
 
                 # بازگرداندن توکن‌ها در پاسخ
@@ -314,7 +314,7 @@ class OTPVerifyAPIView(APIView):
 
         except User.DoesNotExist:
             return Response({
-                "message": "Invalid OTP."
+                "message": "User not found or invalid OTP."
             }, status=status.HTTP_400_BAD_REQUEST)
 
 
