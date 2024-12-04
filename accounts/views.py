@@ -41,7 +41,7 @@ class RegisterAPIView(APIView):
             token = default_token_generator.make_token(user)
             uid = urlsafe_base64_encode(str(user.pk).encode())
             # Updated verification link with email as a query parameter
-            verification_link = f'http://localhost:8000/api/accounts/activate-email?uid={uid}&token={token}&email={user.email}'  # Include user email in the URL
+            verification_link = f'http://localhost:3000/api/accounts/activate-email?uid={uid}&token={token}&email={user.email}'  # Include user email in the URL
 
             # Define URLs for login and forgot password
             login_action_url = 'http://yourdomain.com/login'  # Use https in production
