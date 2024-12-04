@@ -40,7 +40,8 @@ class RegisterAPIView(APIView):
             # Generate email verification token
             token = default_token_generator.make_token(user)
             uid = urlsafe_base64_encode(str(user.pk).encode())
-            verification_link = f'http://localhost:8000/api/accounts/activate-email/{uid}/{token}/'  # Use https in production
+            # Updated verification link with email as a query parameter
+            verification_link = f'http://localhost:8000/api/accounts/activate-email?uid={uid}&token={token}&email={user.email}'  # Include user email in the URL
 
             # Define URLs for login and forgot password
             login_action_url = 'http://yourdomain.com/login'  # Use https in production
@@ -55,15 +56,16 @@ class RegisterAPIView(APIView):
                     'support_email': 'support@example.com',
                     'user_name': user.username,
                     'login_action_url': login_action_url,
-                    'forgot_password_url': forgot_password_url
+                    'forgot_password_url': forgot_password_url,
+                    'user_email': user.email  # Added user email to the content of the email
                 })
 
-                # Send the email
+                # Send the email to the user
                 send_mail(
                     email_subject,
                     '',  # No plain text as it's HTML email
                     'no-reply@fortify.com',  # Sender's email
-                    [user.email],
+                    [user.email],  # Send to the user's email
                     fail_silently=False,
                     html_message=email_message  # Send the HTML content
                 )
@@ -149,19 +151,34 @@ class LoginAPIView(APIView):
 # ویو تایید ایمیل
 class ActivateEmailAPIView(APIView):
     permission_classes = [AllowAny]
+
     def get(self, request, uidb64, token):
         try:
-            uid = force_str(urlsafe_base64_decode(uidb64))  # تبدیل رشته به force_str
+            # دیکد کردن شناسه کاربر
+            uid = force_str(urlsafe_base64_decode(uidb64))
             user = User.objects.get(pk=uid)
+
+            # بررسی توکن تأیید
             if default_token_generator.check_token(user, token):
+                # فعال کردن کاربر
                 user.is_active = True
                 user.save()
-                return Response({"message": "Email successfully confirmed!"}, status=status.HTTP_200_OK)
+
+                # ایجاد توکن‌های جدید برای دسترسی و رفرش
+                refresh = RefreshToken.for_user(user)
+                access_token = str(refresh.access_token)
+                refresh_token = str(refresh)
+
+                # ارسال پاسخ موفقیت و توکن‌ها
+                return Response({
+                    "message": "Email successfully confirmed!",
+                    "access_token": access_token,
+                    "refresh_token": refresh_token
+                }, status=status.HTTP_200_OK)
             else:
                 return Response({"message": "Invalid token."}, status=status.HTTP_400_BAD_REQUEST)
         except (TypeError, ValueError, OverflowError, User.DoesNotExist):
             return Response({"message": "Invalid token or user does not exist."}, status=status.HTTP_400_BAD_REQUEST)
-
 
 # ویو برای بازیابی رمز عبور
 class PasswordResetAPIView(APIView):
