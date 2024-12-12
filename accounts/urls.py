@@ -1,26 +1,17 @@
 from django.urls import path
-from .views import (
-    RegisterAPIView,
-    LoginAPIView,
-    ActivateEmailAPIView,
-    PasswordResetAPIView,
-    PasswordResetConfirmAPIView,
-    PasswordChangeAPIView,
-    UpdateProfileAPIView,
-    LogoutAPIView,
-    DeleteAccountAPIView,
-    OTPVerifyAPIView
-)
+from . import views
 
 urlpatterns = [
-    path('register/', RegisterAPIView.as_view(), name='register'),  # ثبت‌نام کاربر
-    path('login/', LoginAPIView.as_view(), name='login'),  # ورود کاربر
-    path('login-verify/<str:otp>/', OTPVerifyAPIView.as_view(), name='otp-verify'),
-    path('activate-email/<str:uidb64>/<str:token>/', ActivateEmailAPIView.as_view(), name='activate-email'),  # تایید ایمیل
-    path('password-reset/', PasswordResetAPIView.as_view(), name='password-reset'),  # درخواست بازیابی رمز عبور
-    path('reset-password/<str:uidb64>/<str:token>/', PasswordResetConfirmAPIView.as_view(), name='password-reset-confirm'),  # تایید بازیابی رمز عبور
-    path('password-change/<str:uidb64>/<str:token>/', PasswordChangeAPIView.as_view(), name='password-change'),  # تغییر رمز عبور
-    path('update-profile/', UpdateProfileAPIView.as_view(), name='update-profile'),  # آپدیت پروفایل کاربری
-    path('logout/', LogoutAPIView.as_view(), name='logout'),  # خروج کاربر
-    path('delete-account/', DeleteAccountAPIView.as_view(), name='delete-account'),  # حذف حساب کاربری
+    path('register/', views.RegisterAPIView.as_view(), name='register'),
+    path('login/', views.LoginAPIView.as_view(), name='login'),
+    path('logout/', views.LogoutAPIView.as_view(), name='logout'),
+    path('activate-email/<str:uidb64>/<str:token>/', views.ActivateEmailAPIView.as_view(), name='activate_email'),
+    path('password-reset/', views.PasswordResetAPIView.as_view(), name='password_reset'),
+    path('password-reset-confirm/<str:uidb64>/<str:token>/', views.PasswordResetConfirmAPIView.as_view(), name='password_reset_confirm'),
+    path('password-change/<str:uidb64>/<str:token>/', views.PasswordChangeAPIView.as_view(), name='password_change'),
+    path('profile/update/', views.UpdateProfileAPIView.as_view(), name='update_profile'),
+    path('profile/<int:user_id>/', views.UserProfileView.as_view(), name='user_profile'),
+    path('search/', views.SearchUserView.as_view(), name='search_user'),
+    path('delete-account/', views.DeleteAccountAPIView.as_view(), name='delete_account'),
+    path('login-verify/<str:otp>/', views.OTPVerifyAPIView.as_view(), name='otp_verify'),
 ]

@@ -21,15 +21,13 @@ class ProfileSerializer(serializers.ModelSerializer):
         fields = ['id', 'user', 'date_of_birth', 'gender', 'location', 'website']
 
 
-
-
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True)
     password_confirm = serializers.CharField(write_only=True, required=True)
 
     class Meta:
         model = User
-        fields = ['username', 'email', 'phone_number', 'password', 'password_confirm']
+        fields = ['username', 'email', 'password', 'password_confirm']
 
     def validate_username(self, value):
         """Check if the username already exists"""

@@ -152,7 +152,7 @@ class LoginAPIView(APIView):
 class ActivateEmailAPIView(APIView):
     permission_classes = [AllowAny]
 
-    def get(self, request, uidb64, token):
+    def post(self, request, uidb64, token):
         try:
             # دیکد کردن شناسه کاربر
             uid = force_str(urlsafe_base64_decode(uidb64))
@@ -317,11 +317,12 @@ class OTPVerifyAPIView(APIView):
                 user.otp_expiration = None  # انقضای OTP را پاک می‌کنیم
                 user.save()
 
-                # بازگرداندن توکن‌ها در پاسخ
+                # بازگرداندن توکن‌ها و نام کاربری در پاسخ
                 return Response({
                     "message": "Login successful!",
                     "access_token": str(access_token),
-                    "refresh_token": str(refresh)
+                    "refresh_token": str(refresh),
+                    "username": user.username  # اضافه کردن نام کاربری به پاسخ
                 }, status=status.HTTP_200_OK)
 
             else:
@@ -333,6 +334,7 @@ class OTPVerifyAPIView(APIView):
             return Response({
                 "message": "User not found or invalid OTP."
             }, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 

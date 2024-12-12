@@ -5,7 +5,6 @@ from datetime import timedelta
 
 
 class User(AbstractUser):
-    phone_number = models.CharField(max_length=15, blank=True, null=True, verbose_name="Phone Number")
     is_online = models.BooleanField(default=False, verbose_name="Online Status")
     last_seen = models.DateTimeField(blank=True, null=True, verbose_name="Last Seen")
     profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True,
