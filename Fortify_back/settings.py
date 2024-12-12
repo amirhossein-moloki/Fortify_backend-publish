@@ -1,5 +1,6 @@
 from pathlib import Path
 from datetime import timedelta
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -16,7 +17,6 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 # Application definition
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -24,11 +24,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'channels',
     'accounts',
     'rest_framework',  # برای Django REST Framework
     'rest_framework_simplejwt',  # برای JWT
     'corsheaders',  # اضافه کردن corsheaders
-    'channels',
     'chats',
 ]
 
@@ -42,7 +42,6 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
-
 
 ROOT_URLCONF = 'Fortify_back.urls'
 
@@ -62,8 +61,7 @@ TEMPLATES = [
     },
 ]
 
-
-ASGI_APPLICATION ='Fortify_back.asgi.application'
+ASGI_APPLICATION = "Fortify_back.asgi.application"
 
 # Database
 DATABASES = {
@@ -138,9 +136,8 @@ SIMPLE_JWT = {
 # User model settings
 AUTH_USER_MODEL = 'accounts.User'
 
+# CORS Settings
 CORS_ALLOW_ALL_ORIGINS = True
-
-
 CORS_ALLOW_CREDENTIALS = True  # اجازه دادن به کوکی‌ها و اعتبارنامه‌ها
 CORS_ALLOW_METHODS = [
     'GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS',
@@ -149,7 +146,24 @@ CORS_ALLOW_HEADERS = [
     'content-type', 'accept', 'Authorization', 'X-Requested-With', 'Access-Control-Allow-Origin',
 ]
 
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",  # آدرس فرانت‌اند React
+    "http://127.0.0.1:8000", # دامنه دیگر
+    "http://localhost:5500",
+]
 
+# Media files settings
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# Channels settings
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',  # استفاده از InMemoryChannelLayer برای محیط توسعه
+    },
+}
+
+# Email settings (example for Gmail SMTP)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 465
@@ -159,13 +173,3 @@ EMAIL_HOST_USER = 'amir.moloki8558@gmail.com'  # ایمیل شما
 EMAIL_HOST_PASSWORD = 'drgzueqzrcupbfyr'  # رمز عبور ایمیل
 DEFAULT_FROM_EMAIL = 'amir.moloki8558@gmail.com'
 
-
-
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            "hosts": [('127.0.0.1', 6379)],
-        },
-    },
-}
