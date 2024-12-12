@@ -6,7 +6,7 @@ from .models import Chat, Role
 from .serializers import ChatSerializer
 from rest_framework.permissions import IsAuthenticated
 from .serializers import GetChatsSerializer
-
+from rest_framework_simplejwt.authentication import JWTAuthentication
 class CreateChatView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -237,8 +237,11 @@ class RemoveUserFromChatView(APIView):
 
 
 class GetUserChatsView(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]  # اضافه کردن احراز هویت JWT
+
     def get(self, request, *args, **kwargs):
-        user = request.user  # فرض می‌کنیم که کاربر از JWT یا session احراز هویت شده است.
+        user = request.user  # کاربر احراز هویت شده از طریق توکن JWT
         chats = Chat.objects.filter(participants=user)
 
         # استفاده از سریالایزر برای چت‌ها
