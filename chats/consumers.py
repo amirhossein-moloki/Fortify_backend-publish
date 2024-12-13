@@ -153,8 +153,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
         elif action == 'read':
             message_id = data.get('message_id')
 
+            # فراخوانی متد mark_as_read
             await self.mark_as_read(message_id)
 
+            # ارسال پیام به گروه برای اطلاع‌رسانی سایر اعضا
             await self.channel_layer.group_send(
                 self.group_name,
                 {
@@ -196,8 +198,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def mark_as_read(self, message_id):
+        """علامت‌گذاری پیام به عنوان خوانده شده و اضافه کردن کاربر به لیست read_by"""
         message = Message.objects.get(id=message_id)
         message.is_read = True
+        # اضافه کردن کاربر به لیست افرادی که پیام را خوانده‌اند
         message.read_by.add(self.scope['user'])
         message.save()
 
