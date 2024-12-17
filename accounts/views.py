@@ -339,28 +339,27 @@ class OTPVerifyAPIView(APIView):
 
 
 class UserProfileView(APIView):
-    def get(self, request, user_id):
+    permission_classes = [IsAuthenticated]  # نیاز به احراز هویت
+
+    def post(self, request):
         try:
-            # دریافت کاربر بر اساس id
-            user = User.objects.get(id=user_id)
+            # دریافت نام کاربری از بدنه درخواست
+            username = request.data.get('username')
 
-            # دریافت پروفایل کاربر
-            profile = Profile.objects.get(user=user)
+            if not username:
+                return Response({'msg': 'Username required'}, status=status.HTTP_400_BAD_REQUEST)
 
-            # سریالایز کردن اطلاعات کاربر و پروفایل
-            user_serializer = UserSerializer(user)
-            profile_serializer = ProfileSerializer(profile)
+            # دریافت کاربر بر اساس نام کاربری
+            user = User.objects.get(username=username)
 
-            # بازگرداندن داده‌های سریالایز شده
-            return Response({
-                'user': user_serializer.data,
-                'profile': profile_serializer.data
-            }, status=status.HTTP_200_OK)
+            # بررسی مالکیت پروفایل
+            is_owner = request.user == user
+
+            # بازگرداندن نتیجه به‌صورت بولین
+            return Response({'is_owner': is_owner}, status=status.HTTP_200_OK)
 
         except User.DoesNotExist:
-            return Response({'detail': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
-        except Profile.DoesNotExist:
-            return Response({'detail': 'Profile not found.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'msg': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
 class SearchUserView(APIView):
     def get(self, request):
