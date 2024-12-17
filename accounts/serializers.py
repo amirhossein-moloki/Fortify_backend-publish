@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'phone_number', 'is_online', 'last_seen', 'profile_picture', 'bio']
+        fields = ['id', 'username', 'email', 'is_online', 'last_seen', 'profile_picture', 'bio']
 
     def validate_username(self, value):
         if User.objects.filter(username=value).exists():
