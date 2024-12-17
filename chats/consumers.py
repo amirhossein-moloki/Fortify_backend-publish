@@ -262,6 +262,19 @@ class ChatConsumer(AsyncWebsocketConsumer):
         message = Message.objects.get(id=message_id)
         return message.read_by.all()
 
+    @database_sync_to_async
+    def get_sender_username(self, message):
+        return message.sender.username
+
+    @database_sync_to_async
+    def get_sender_profile_picture(self, message):
+        return message.sender.profile_picture.url if message.sender.profile_picture else None
+
+    @database_sync_to_async
+    def get_sender_bio(self, message):
+        return message.sender.bio if message.sender.bio else ""
+
+
     async def chat_message(self, event):
         message = event.get('message')
         if not message:
