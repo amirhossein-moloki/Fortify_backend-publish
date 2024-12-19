@@ -254,19 +254,33 @@ class UpdateProfileAPIView(APIView):
 
     def put(self, request):
         user = request.user
-        profile_data = request.data.get('profile', {})
+        data = request.data
 
-        # بررسی وجود پروفایل کاربر
-        if not hasattr(user, 'profile'):
-            return Response({"message": "Profile does not exist."}, status=status.HTTP_404_NOT_FOUND)
+        # آپدیت اطلاعات کاربری
+        user_serializer = UserSerializer(user, data=data.get('user', {}), partial=True)
+
+        if user_serializer.is_valid():
+            user_serializer.save()
+        else:
+            return Response({"user_errors": user_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+        # بررسی وجود پروفایل و ایجاد در صورت نبود
+        profile, created = Profile.objects.get_or_create(user=user)
 
         # آپدیت پروفایل
-        profile_serializer = ProfileSerializer(user.profile, data=profile_data, partial=True)
+        profile_serializer = ProfileSerializer(profile, data=data.get('profile', {}), partial=True)
 
         if profile_serializer.is_valid():
             profile_serializer.save()
-            return Response({"message": "Profile updated successfully!"}, status=status.HTTP_200_OK)
-        return Response(profile_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response({
+                "message": "Profile updated successfully!" + (" Profile was created." if created else ""),
+                "user": user_serializer.data,
+                "profile": profile_serializer.data
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response({"profile_errors": profile_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+
 
 
 # ویو برای خروج کاربر
