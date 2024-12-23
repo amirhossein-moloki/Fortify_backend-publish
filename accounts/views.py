@@ -252,7 +252,7 @@ class PasswordChangeAPIView(APIView):
 class UpdateProfileAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def put(self, request):
+    def patch(self, request):
         user = request.user
         data = request.data
 
@@ -373,7 +373,6 @@ class UserProfileView(APIView):
             # بازگرداندن داده‌های سریالایز شده به همراه وضعیت مالکیت
             return Response({
                 'is_owner': is_owner,
-                'user': user_serializer.data,
                 'profile': profile_serializer.data if profile_serializer else None
             }, status=status.HTTP_200_OK)
 

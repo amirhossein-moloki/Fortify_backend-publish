@@ -122,8 +122,8 @@ REST_FRAMEWORK = {
 
 # JWT Token Expiry Time Settings (Optional)
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),  # مدت زمان اعتبار توکن دسترسی
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),     # مدت زمان اعتبار توکن بازنشانی
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=30),  # مدت زمان اعتبار توکن دسترسی
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=100),     # مدت زمان اعتبار توکن بازنشانی
     'ROTATE_REFRESH_TOKENS': False,                   # چرخش توکن‌های بازنشانی
     'BLACKLIST_AFTER_ROTATION': False,                # مسدودسازی توکن‌های بازنشانی بعد از چرخش
     'ALGORITHM': 'HS256',                             # الگوریتم رمزنگاری
