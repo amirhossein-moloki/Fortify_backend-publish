@@ -369,11 +369,12 @@ class UserProfileView(APIView):
             # سریالایز کردن داده‌ها
             user_serializer = UserSerializer(user)
             profile_serializer = ProfileSerializer(profile) if profile else None
+            user_serializer=UserSerializer(user) if is_owner else None
 
             # بازگرداندن داده‌های سریالایز شده به همراه وضعیت مالکیت
             return Response({
                 'is_owner': is_owner,
-                'profile': profile_serializer.data if profile_serializer else None
+                'profile': profile_serializer.data if profile_serializer else None,
             }, status=status.HTTP_200_OK)
 
         except User.DoesNotExist:

@@ -7,6 +7,13 @@ from .serializers import ChatSerializer
 from rest_framework.permissions import IsAuthenticated
 from .serializers import GetChatsSerializer
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.response import Response
+from rest_framework.decorators import api_view
+from rest_framework.permissions import IsAuthenticated
+from .models import Chat
+from .serializers import ChatSerializer
+from rest_framework.exceptions import NotFound
+
 class CreateChatView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -258,3 +265,20 @@ class SearchChatsView(APIView):
 
         serializer = GetChatsSerializer(chats, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+def get_chat_participants(request, chat_id):
+    # ابتدا بررسی می‌کنیم که آیا کاربر درخواست را فرستاده در چت حضور دارد یا نه
+    user = request.user
+    try:
+        chat = Chat.objects.get(id=chat_id)
+    except Chat.DoesNotExist:
+        raise NotFound('Chat not found')
+
+    if user not in chat.participants.all():
+        raise NotFound('User not part of the chat')
+
+    # اگر کاربر در چت حضور داشت، اطلاعات تمامی شرکت‌کنندگان را بر می‌گردانیم
+    serializer = ChatSerializer(chat)
+    return Response(serializer.data)
