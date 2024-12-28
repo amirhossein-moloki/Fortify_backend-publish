@@ -1,12 +1,8 @@
 from rest_framework import serializers
 from .models import Chat, Message, Attachment, Role
 from accounts.models import User
+from accounts.serializers import UserSerializer
 
-# سریالایزر برای User
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ('id', 'username', 'email','profile_picture','is_online','last_seen')  # می‌توانید فیلدهای مورد نیاز خود را اضافه کنید
 
 # سریالایزر برای مدل Chat
 class ChatSerializer(serializers.ModelSerializer):
