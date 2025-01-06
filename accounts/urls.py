@@ -14,4 +14,5 @@ urlpatterns = [
     path('search/', views.SearchUserView.as_view(), name='search_user'),
     path('delete-account/', views.DeleteAccountAPIView.as_view(), name='delete_account'),
     path('login-verify/<str:otp>/', views.OTPVerifyAPIView.as_view(), name='otp_verify'),
+    path('change-password/', views.change_password, name='change_password'),
 ]

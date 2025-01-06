@@ -13,13 +13,12 @@ class Chat(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     chat_type = models.CharField(max_length=10, choices=CHAT_TYPES, default='direct')
     group_name = models.CharField(max_length=255, null=True, blank=True)  # نام گروه یا کانال
-    group_admin = models.ForeignKey(
+    group_admin = models.ManyToManyField(
         User,
-        null=True,
         blank=True,
-        on_delete=models.SET_NULL,
-        related_name='admin_chats'
+        related_name='admin_groups'
     )
+
     max_participants = models.IntegerField(default=50)  # حداکثر تعداد اعضا برای گروه‌ها و کانال‌ها
     description = models.TextField(null=True, blank=True)  # توضیحات چت، گروه یا کانال
     group_image = models.ImageField(upload_to='chat_images/', null=True, blank=True)  # فیلد عکس گروه

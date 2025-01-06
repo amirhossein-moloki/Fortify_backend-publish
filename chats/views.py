@@ -1,41 +1,44 @@
+from .serializers import GetChatsSerializer
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.decorators import api_view
+from .serializers import ChatSerializer
+from rest_framework.exceptions import NotFound
+from accounts.models import User
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from django.contrib.auth.models import User
 from .models import Chat, Role
-from .serializers import ChatSerializer
 from rest_framework.permissions import IsAuthenticated
-from .serializers import GetChatsSerializer
-from rest_framework_simplejwt.authentication import JWTAuthentication
-from rest_framework.response import Response
-from rest_framework.decorators import api_view
-from rest_framework.permissions import IsAuthenticated
-from .models import Chat
-from .serializers import ChatSerializer
-from rest_framework.exceptions import NotFound
-
+from rest_framework.exceptions import PermissionDenied
 class CreateChatView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
         data = request.data
         chat_type = data.get('chat_type')  # نوع چت (direct, group, channel)
-        user1_username = data.get('user1')  # یوزرنیم کاربر اول
+        user1 = request.user  # کاربر اول از توکن احراز هویت گرفته می‌شود
         user2_username = data.get('user2')  # یوزرنیم کاربر دوم (برای چت direct)
 
-        # بررسی وجود کاربرها
+        # بررسی وجود کاربر دوم
         try:
-            user1 = User.objects.get(username=user1_username)
             user2 = User.objects.get(username=user2_username)
         except User.DoesNotExist:
             return Response({"error": "User not found."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # بررسی وجود تصویر گروه
+        group_image = None
+        if chat_type == 'group' or chat_type == 'channel':
+            group_image = request.FILES.get('group_image')  # دریافت تصویر گروه از درخواست
+
+            if not group_image and chat_type in ['group', 'channel']:
+                return Response({"error": "Group image is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         # ساخت چت
         if chat_type == 'direct':
             # ایجاد چت برای دو نفر
             chat = Chat.objects.create(chat_type='direct')
             chat.participants.add(user1, user2)  # اضافه کردن دو کاربر به چت
-            chat.group_admin = user1  # کاربر اول به عنوان ادمین
+            chat.group_admin.set([user1])  # کاربر اول به عنوان ادمین
             chat.save()
 
             # نقش‌ها را برای هر دو نفر تعیین می‌کنیم
@@ -52,7 +55,12 @@ class CreateChatView(APIView):
 
             chat = Chat.objects.create(chat_type='group', group_name=group_name, max_participants=max_participants)
             chat.participants.add(user1, user2)  # اضافه کردن دو کاربر به چت
-            chat.group_admin = user1  # کاربر اول به عنوان ادمین
+            chat.group_admin.set([user1])  # کاربر اول به عنوان ادمین
+
+            # ذخیره تصویر گروه
+            if group_image:
+                chat.group_image = group_image  # ذخیره تصویر گروه
+
             chat.save()
 
             # نقش‌ها را برای اعضای گروه تنظیم می‌کنیم
@@ -68,7 +76,12 @@ class CreateChatView(APIView):
 
             chat = Chat.objects.create(chat_type='channel', group_name=group_name)
             chat.participants.add(user1, user2)  # اضافه کردن دو کاربر به چت
-            chat.group_admin = user1  # کاربر اول به عنوان ادمین
+            chat.group_admin.set([user1])  # کاربر اول به عنوان ادمین
+
+            # ذخیره تصویر گروه (برای کانال نیز)
+            if group_image:
+                chat.group_image = group_image  # ذخیره تصویر گروه
+
             chat.save()
 
             # نقش‌ها را برای کانال تنظیم می‌کنیم
@@ -79,8 +92,10 @@ class CreateChatView(APIView):
             return Response({"error": "Invalid chat type."}, status=status.HTTP_400_BAD_REQUEST)
 
         # بازگرداندن اطلاعات چت جدید به همراه جزئیات آن
-        serializer = ChatSerializer(chat)
+        serializer = ChatSerializer(chat, context={'request': request})
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
 
 
 class UpdateChatView(APIView):
@@ -96,8 +111,7 @@ class UpdateChatView(APIView):
             return Response({"error": "Chat not found."}, status=status.HTTP_404_NOT_FOUND)
 
         # بررسی اینکه آیا کاربر ادمین این چت است
-        role = Role.objects.filter(user=request.user, chat=chat).first()
-        if not role or role.role != 'admin':
+        if request.user not in chat.group_admin.all():
             return Response({"error": "You are not the admin of this chat."}, status=status.HTTP_403_FORBIDDEN)
 
         # تغییرات مجاز
@@ -116,6 +130,7 @@ class UpdateChatView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+
 class DeleteChatView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -129,8 +144,7 @@ class DeleteChatView(APIView):
             return Response({"error": "Chat not found."}, status=status.HTTP_404_NOT_FOUND)
 
         # بررسی اینکه آیا کاربر ادمین این چت است
-        role = Role.objects.filter(user=request.user, chat=chat).first()
-        if not role or role.role != 'admin':
+        if request.user not in chat.group_admin.all():
             return Response({"error": "You are not the admin of this chat."}, status=status.HTTP_403_FORBIDDEN)
 
         # حذف چت
@@ -138,12 +152,6 @@ class DeleteChatView(APIView):
 
         return Response({"message": "Chat deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
 
-from rest_framework import status
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from .models import Chat, Role
-from django.contrib.auth.models import User
-from rest_framework.permissions import IsAuthenticated
 
 class AddUserToChatView(APIView):
     permission_classes = [IsAuthenticated]
@@ -158,8 +166,7 @@ class AddUserToChatView(APIView):
             return Response({"error": "Chat not found."}, status=status.HTTP_404_NOT_FOUND)
 
         # بررسی اینکه آیا کاربر ادمین این چت است
-        role = Role.objects.filter(user=request.user, chat=chat).first()
-        if not role or role.role != 'admin':
+        if request.user not in chat.group_admin.all():
             return Response({"error": "You are not the admin of this chat."}, status=status.HTTP_403_FORBIDDEN)
 
         # دریافت یوزرنیم‌های کاربران که می‌خواهیم به چت اضافه کنیم
@@ -169,6 +176,8 @@ class AddUserToChatView(APIView):
 
         # اضافه کردن کاربران به چت
         new_users = []
+        already_in_chat = []
+
         for username in usernames:
             try:
                 new_user = User.objects.get(username=username)
@@ -177,20 +186,20 @@ class AddUserToChatView(APIView):
 
             # بررسی اینکه آیا کاربر قبلاً عضو چت است یا نه
             if new_user in chat.participants.all():
+                already_in_chat.append(username)
                 continue  # کاربر از قبل عضو است
 
             chat.participants.add(new_user)
-
-            # تعیین نقش کاربر در گروه یا کانال
-            if chat.chat_type == 'group':
-                Role.objects.create(user=new_user, chat=chat, role='member')
-            elif chat.chat_type == 'channel':
-                Role.objects.create(user=new_user, chat=chat, role='viewer')
-
             new_users.append(new_user)
 
         chat.save()
-        return Response({"message": f"Users {', '.join([user.username for user in new_users])} added successfully."}, status=status.HTTP_200_OK)
+
+        # پیام نهایی
+        message = f"Users {', '.join([user.username for user in new_users])} added successfully."
+        if already_in_chat:
+            message += f" Users {', '.join(already_in_chat)} were already in the chat."
+
+        return Response({"message": message}, status=status.HTTP_200_OK)
 
 
 
@@ -207,8 +216,7 @@ class RemoveUserFromChatView(APIView):
             return Response({"error": "Chat not found."}, status=status.HTTP_404_NOT_FOUND)
 
         # بررسی اینکه آیا کاربر ادمین این چت است
-        role = Role.objects.filter(user=request.user, chat=chat).first()
-        if not role or role.role != 'admin':
+        if request.user not in chat.group_admin.all():
             return Response({"error": "You are not the admin of this chat."}, status=status.HTTP_403_FORBIDDEN)
 
         # دریافت یوزرنیم‌های کاربران که می‌خواهیم از چت اخراج کنیم
@@ -216,30 +224,41 @@ class RemoveUserFromChatView(APIView):
         if not usernames or not isinstance(usernames, list):
             return Response({"error": "Usernames must be provided as a list."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # اخراج کاربران از چت
         removed_users = []
+        not_found_users = []
+        not_in_chat_users = []
+
         for username in usernames:
             try:
                 remove_user = User.objects.get(username=username)
             except User.DoesNotExist:
-                return Response({"error": f"User {username} not found."}, status=status.HTTP_400_BAD_REQUEST)
+                not_found_users.append(username)
+                continue
 
-            # بررسی اینکه آیا کاربر مورد نظر عضو چت است یا نه
+            # بررسی اینکه آیا کاربر عضو چت است
             if remove_user not in chat.participants.all():
-                continue  # کاربر عضو چت نیست
+                not_in_chat_users.append(username)
+                continue
 
             chat.participants.remove(remove_user)
-
-            # حذف نقش کاربر از مدل Role
-            role_to_remove = Role.objects.filter(user=remove_user, chat=chat).first()
-            if role_to_remove:
-                role_to_remove.delete()
-
             removed_users.append(remove_user)
 
         chat.save()
-        return Response({"message": f"Users {', '.join([user.username for user in removed_users])} removed successfully."}, status=status.HTTP_200_OK)
 
+        # بررسی پیام‌های خطا
+        error_messages = []
+        if not_found_users:
+            error_messages.append(f"User(s) {', '.join(not_found_users)} not found.")
+        if not_in_chat_users:
+            error_messages.append(f"User(s) {', '.join(not_in_chat_users)} are not in the chat.")
+
+        if error_messages:
+            return Response({"error": " | ".join(error_messages)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(
+            {"message": f"User(s) {', '.join([user.username for user in removed_users])} removed successfully."},
+            status=status.HTTP_200_OK
+        )
 
 
 
@@ -276,9 +295,10 @@ def get_chat_participants(request, chat_id):
     except Chat.DoesNotExist:
         raise NotFound('Chat not found')
 
+    # بررسی اینکه آیا کاربر در لیست شرکت‌کنندگان چت وجود دارد
     if user not in chat.participants.all():
-        raise NotFound('User not part of the chat')
+        raise PermissionDenied('You are not authorized to view this chat')
 
-    # اگر کاربر در چت حضور داشت، اطلاعات تمامی شرکت‌کنندگان را بر می‌گردانیم
-    serializer = ChatSerializer(chat)
+    # مقداردهی سریالایزر با ارسال context برای دسترسی به request
+    serializer = ChatSerializer(chat, context={'request': request})
     return Response(serializer.data)

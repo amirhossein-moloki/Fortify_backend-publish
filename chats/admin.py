@@ -4,11 +4,15 @@ from .models import Chat, Message, Attachment, Role
 # تنظیمات مدل Chat
 @admin.register(Chat)
 class ChatAdmin(admin.ModelAdmin):
-    list_display = ('id', 'chat_type', 'group_name', 'group_admin', 'created_at', 'updated_at')
+    list_display = ('id', 'chat_type', 'group_name', 'get_group_admin', 'created_at', 'updated_at')
     list_filter = ('chat_type', 'created_at')
     search_fields = ('group_name', 'group_admin__username')
-    filter_horizontal = ('participants',)  # برای مدیریت راحت‌تر شرکت‌کنندگان
-    readonly_fields = ('created_at', 'updated_at')  # جلوگیری از ویرایش این فیلدها
+    filter_horizontal = ('participants', 'group_admin')  # برای مدیریت راحت‌تر ادمین‌ها و شرکت‌کنندگان
+    readonly_fields = ('created_at', 'updated_at')
+
+    def get_group_admin(self, obj):
+        return ", ".join([admin.username for admin in obj.group_admin.all()])
+    get_group_admin.short_description = "Admins"
 
 # تنظیمات مدل Message
 @admin.register(Message)

@@ -22,6 +22,7 @@ import string
 from django.utils import timezone
 from datetime import timedelta
 from rest_framework.permissions import AllowAny
+from rest_framework.decorators import api_view, permission_classes
 logger = logging.getLogger(__name__)
 
 class RegisterAPIView(APIView):
@@ -405,3 +406,34 @@ class SearchUserView(APIView):
 
         # اگر هیچ پارامتر جستجویی مشخص نشده باشد
         return Response({'detail': 'Please provide either a username or an email.'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def change_password(request):
+    """
+    Change password for the authenticated user and refresh JWT token
+    """
+    user = request.user
+    old_password = request.data.get("old_password")
+    new_password = request.data.get("new_password")
+
+    # Verify the old password
+    if not user.check_password(old_password):
+        return Response({"error": "Old password is incorrect."}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Update the password
+    if new_password:
+        user.set_password(new_password)
+        user.save()
+
+        # Invalidate old tokens by issuing new ones
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            "message": "Password changed successfully.",
+            "refresh": str(refresh),
+            "access": str(refresh.access_token)
+        }, status=status.HTTP_200_OK)
+    else:
+        return Response({"error": "New password is required."}, status=status.HTTP_400_BAD_REQUEST)

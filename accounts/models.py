@@ -4,6 +4,9 @@ from django.utils import timezone
 from datetime import timedelta
 
 
+from django.conf import settings
+from django.db import models
+
 class User(AbstractUser):
     is_online = models.BooleanField(default=False, verbose_name="Online Status")
     last_seen = models.DateTimeField(blank=True, null=True, verbose_name="Last Seen")
@@ -23,6 +26,13 @@ class User(AbstractUser):
         if self.otp and self.otp_expiration:
             return timezone.now() < self.otp_expiration
         return False
+
+    def get_profile_picture(self):
+        """ بازگرداندن عکس پروفایل یا عکس پیش‌فرض """
+        if self.profile_picture:
+            return self.profile_picture.url
+        else:
+            return '/media/default_profile_picture.jpg'  # مسیر عکس پیش‌فرض شما
 
 
 class Profile(models.Model):

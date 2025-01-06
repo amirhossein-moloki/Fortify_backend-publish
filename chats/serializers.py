@@ -1,19 +1,48 @@
 from rest_framework import serializers
 from .models import Chat, Message, Attachment, Role
-from accounts.models import User
 from accounts.serializers import UserSerializer
-
+from .models import Chat, Message
+from rest_framework import serializers
 
 # سریالایزر برای مدل Chat
 class ChatSerializer(serializers.ModelSerializer):
     participants = UserSerializer(many=True)  # نمایش شرکت‌کنندگان
-    group_admin = UserSerializer()  # نمایش ادمین گروه
+    group_admin = UserSerializer(many=True)  # تغییر به چند ادمین
     created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S")
     updated_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S")
 
+    group_name = serializers.SerializerMethodField()
+    group_image = serializers.SerializerMethodField()
+
     class Meta:
         model = Chat
-        fields = ('id', 'participants', 'created_at', 'updated_at', 'chat_type', 'group_name', 'group_admin','group_image','max_participants', 'description')
+        fields = (
+            'id',
+            'participants',
+            'created_at',
+            'updated_at',
+            'chat_type',
+            'group_name',
+            'group_admin',  # تغییر به لیست از ادمین‌ها
+            'group_image',
+            'max_participants',
+            'description',
+        )
+
+    def get_group_name(self, obj):
+        user = self.context['request'].user
+        if obj.chat_type == 'direct':
+            other_user = obj.participants.exclude(id=user.id).first()
+            return other_user.username if other_user else "Unknown User"
+        return obj.group_name if obj.group_name else f"Group {obj.id}"
+
+    def get_group_image(self, obj):
+        user = self.context['request'].user
+        if obj.chat_type == 'direct':
+            other_user = obj.participants.exclude(id=user.id).first()
+            return other_user.profile_picture.url if other_user and other_user.profile_picture else None
+        return obj.group_image.url if obj.group_image else None
+
 
 # سریالایزر برای مدل Message
 class MessageSerializer(serializers.ModelSerializer):
@@ -43,9 +72,6 @@ class RoleSerializer(serializers.ModelSerializer):
         model = Role
         fields = ('id', 'user', 'chat', 'role')
 
-from .models import Chat, Message
-from accounts.models import User
-from rest_framework import serializers
 
 class GetChatsSerializer(serializers.ModelSerializer):
     # شمارش پیام‌های خوانده نشده برای کاربر
@@ -63,9 +89,12 @@ class GetChatsSerializer(serializers.ModelSerializer):
     # تصویر گروه یا تصویر پروفایل در چت‌های مستقیم
     group_image = serializers.SerializerMethodField()
 
+    # اطلاعات ادمین‌ها
+    group_admin = serializers.SerializerMethodField()
+
     class Meta:
         model = Chat
-        fields = ['id', 'chat_type', 'group_name', 'group_image', 'unread_count', 'other_user', 'last_message']
+        fields = ['id', 'chat_type', 'group_name', 'group_image', 'unread_count', 'other_user', 'last_message', 'group_admin']
 
     def get_unread_count(self, obj):
         user = self.context['request'].user
@@ -118,3 +147,7 @@ class GetChatsSerializer(serializers.ModelSerializer):
             return other_user.profile_picture.url if other_user and other_user.profile_picture else None
         # برای چت‌های گروهی، تصویر گروه نمایش داده می‌شود
         return obj.group_image.url if obj.group_image else None
+
+    def get_group_admin(self, obj):
+        # نمایش ادمین‌های گروه
+        return UserSerializer(obj.group_admin.all(), many=True).data

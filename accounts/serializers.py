@@ -2,6 +2,9 @@ from rest_framework import serializers
 from .models import User, Profile
 from django.core.exceptions import ValidationError
 
+from rest_framework import serializers
+from .models import User
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -12,6 +15,15 @@ class UserSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("This username is already taken.")
         return value
 
+    def to_representation(self, instance):
+        """
+        برای نمایش بهتر اطلاعات، در صورت نیاز، اطلاعات خاصی را برای هر فرد
+        به‌ویژه فیلدهای `username` و `profile_picture` می‌توان به‌طور ویژه برگشت داد.
+        """
+        representation = super().to_representation(instance)
+        representation['username'] = instance.username
+        representation['profile_picture'] = instance.profile_picture.url if instance.profile_picture else None
+        return representation
 
 class ProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)  # نمایش اطلاعات مربوط به کاربر
