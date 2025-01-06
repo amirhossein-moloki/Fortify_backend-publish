@@ -260,6 +260,29 @@ class RemoveUserFromChatView(APIView):
             status=status.HTTP_200_OK
         )
 
+class LeaveChatView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, chat_id):
+        """
+        این ویو برای خروج کاربر از گروه یا کانال استفاده می‌شود.
+        """
+        try:
+            chat = Chat.objects.get(id=chat_id)
+        except Chat.DoesNotExist:
+            return Response({"error": "Chat not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # بررسی اینکه آیا کاربر عضو چت است
+        if request.user not in chat.participants.all():
+            return Response({"error": "You are not a participant in this chat."}, status=status.HTTP_403_FORBIDDEN)
+
+        # حذف کاربر از چت
+        chat.participants.remove(request.user)
+        chat.save()
+
+        return Response({"message": "You have successfully left the chat."}, status=status.HTTP_200_OK)
+
+
 
 
 class GetUserChatsView(APIView):
