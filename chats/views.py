@@ -35,15 +35,24 @@ class CreateChatView(APIView):
 
         # ساخت چت
         if chat_type == 'direct':
-            # ایجاد چت برای دو نفر
+            # چک برای چت‌های دایرکت موجود
+            existing_chat = Chat.objects.filter(
+                chat_type='direct',
+                participants=user1
+            ).filter(participants=user2).first()
+
+            if existing_chat:
+                return Response(
+                    {"error": "A direct chat between these users already exists."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # ایجاد چت جدید
             chat = Chat.objects.create(chat_type='direct')
-            chat.participants.add(user1, user2)  # اضافه کردن دو کاربر به چت
-            chat.group_admin.set([user1])  # کاربر اول به عنوان ادمین
+            chat.participants.add(user1, user2)
+            chat.group_admin.set([user1])
             chat.save()
 
-            # نقش‌ها را برای هر دو نفر تعیین می‌کنیم
-            Role.objects.create(user=user1, chat=chat, role='admin')
-            Role.objects.create(user=user2, chat=chat, role='admin')
 
         elif chat_type == 'group':
             # ایجاد چت گروهی
@@ -64,8 +73,7 @@ class CreateChatView(APIView):
             chat.save()
 
             # نقش‌ها را برای اعضای گروه تنظیم می‌کنیم
-            Role.objects.create(user=user1, chat=chat, role='admin')
-            Role.objects.create(user=user2, chat=chat, role='member')
+
 
         elif chat_type == 'channel':
             # ایجاد چت کانال
@@ -83,10 +91,6 @@ class CreateChatView(APIView):
                 chat.group_image = group_image  # ذخیره تصویر گروه
 
             chat.save()
-
-            # نقش‌ها را برای کانال تنظیم می‌کنیم
-            Role.objects.create(user=user1, chat=chat, role='admin')
-            Role.objects.create(user=user2, chat=chat, role='viewer')
 
         else:
             return Response({"error": "Invalid chat type."}, status=status.HTTP_400_BAD_REQUEST)
