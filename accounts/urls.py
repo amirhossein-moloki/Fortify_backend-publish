@@ -15,4 +15,6 @@ urlpatterns = [
     path('delete-account/', views.DeleteAccountAPIView.as_view(), name='delete_account'),
     path('login-verify/<str:otp>/', views.OTPVerifyAPIView.as_view(), name='otp_verify'),
     path('change-password/', views.change_password, name='change_password'),
+    path('resend-activation-email/', views.ResendActivationEmailAPIView.as_view(), name='resend_activation_email'),
+    path('resend-otp/', views.ResendOTPAPIView.as_view(), name='resend_otp'),
 ]

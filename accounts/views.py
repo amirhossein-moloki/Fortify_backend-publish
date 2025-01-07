@@ -24,6 +24,7 @@ from datetime import timedelta
 from rest_framework.permissions import AllowAny
 from rest_framework.decorators import api_view, permission_classes
 logger = logging.getLogger(__name__)
+from django.utils.encoding import force_bytes
 
 class RegisterAPIView(APIView):
     permission_classes = [AllowAny]
@@ -437,3 +438,88 @@ def change_password(request):
         }, status=status.HTTP_200_OK)
     else:
         return Response({"error": "New password is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ResendActivationEmailAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        email = request.data.get('email')
+        try:
+            user = User.objects.get(email=email, is_active=False)
+
+            # Generate new activation token
+            token = default_token_generator.make_token(user)
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            verification_link = f'http://localhost:3000/api/accounts/activate-email?uid={uid}&token={token}&email={user.email}'
+
+            # Define URLs for login and forgot password
+            login_action_url = 'http://yourdomain.com/login'  # Use https in production
+            forgot_password_url = 'http://yourdomain.com/forgot-password'  # Use https in production
+
+            email_subject = 'Fortify - Resend Email Activation'
+            email_message = render_to_string('resend_activation_email.html', {
+                'verification_link': verification_link,
+                'support_email': 'support@example.com',
+                'user_name': user.username,
+                'login_action_url': login_action_url,
+                'forgot_password_url': forgot_password_url,
+                'user_email': user.email
+            })
+
+            send_mail(
+                email_subject,
+                '',  # No plain text as it's HTML email
+                'no-reply@fortify.com',
+                [user.email],
+                fail_silently=False,
+                html_message=email_message
+            )
+
+            return Response({"message": "Activation email resent successfully."}, status=status.HTTP_200_OK)
+        except User.DoesNotExist:
+            return Response({"message": "No inactive user found with this email."}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.error(f"Error resending activation email: {e}")
+            return Response({"message": "Error resending activation email."},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ResendOTPAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        username = request.data.get('username')
+        try:
+            user = User.objects.get(username=username)
+
+            # Generate new OTP
+            otp = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(6))
+            user.otp = otp
+            user.otp_expiration = timezone.now() + timedelta(minutes=10)
+            user.save()
+
+            otp_link = f'http://localhost:8000/api/accounts/login-verify/{otp}/'
+            email_subject = 'Fortify - New OTP for Login'
+            email_message = render_to_string('resend_otp_email.html', {
+                'otp': otp,
+                'user_name': user.username,
+                'otp_link': otp_link,
+                'support_email': 'support@yourdomain.com',
+            })
+
+            send_mail(
+                email_subject,
+                '',
+                'no-reply@yourdomain.com',
+                [user.email],
+                fail_silently=False,
+                html_message=email_message
+            )
+
+            return Response({"message": "New OTP sent successfully."}, status=status.HTTP_200_OK)
+        except User.DoesNotExist:
+            return Response({"message": "No user found with this username."}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.error(f"Error resending OTP: {e}")
+            return Response({"message": "Error sending new OTP."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
