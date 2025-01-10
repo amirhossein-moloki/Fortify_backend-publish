@@ -185,37 +185,41 @@ class ActivateEmailAPIView(APIView):
 # ویو برای بازیابی رمز عبور
 class PasswordResetAPIView(APIView):
     permission_classes = [AllowAny]
+
     def post(self, request):
         email = request.data.get('email')
         form = PasswordResetForm(data={'email': email})
 
         if form.is_valid():
             user = next(form.get_users(email), None)
-            token = default_token_generator.make_token(user)
-            uid = urlsafe_base64_encode(str(user.pk).encode())
-            reset_link = f'http://yourdomain.com/reset-password/{uid}/{token}/'
+            if user:
+                token = default_token_generator.make_token(user)
+                uid = urlsafe_base64_encode(force_bytes(user.pk))
+                reset_link = f'http://localhost:3000/password-reset/{uid}/{token}/'
 
-            # ارسال ایمیل با قالب HTML
-            email_subject = 'Password Reset'
-            email_message = render_to_string('reset_password_email.html', {
-                'reset_link': reset_link,
-                'support_email': 'support@yourdomain.com',
-                'user_name': user.username,
-            })
+                # Send email with HTML template
+                email_subject = 'Password Reset'
+                email_message = render_to_string('reset_password_email.html', {
+                    'reset_link': reset_link,
+                    'support_email': 'support@yourdomain.com',
+                    'user_name': user.username,
+                })
 
-            send_mail(
-                email_subject,
-                '',  # متن ساده را خالی می‌گذاریم چون فقط قالب HTML ارسال می‌شود.
-                'no-reply@yourdomain.com',
-                [user.email],
-                fail_silently=False,
-                html_message=email_message  # ایمیل با قالب HTML
-            )
+                send_mail(
+                    email_subject,
+                    '',  # We leave the plain text content empty as we're sending HTML
+                    'no-reply@yourdomain.com',
+                    [user.email],
+                    fail_silently=False,
+                    html_message=email_message  # HTML email content
+                )
 
-            return Response({"message": "Password reset email sent."}, status=status.HTTP_200_OK)
+                return Response({"message": "Password reset email sent."}, status=status.HTTP_200_OK)
+            else:
+                # We don't want to reveal whether a user exists or not for security reasons
+                return Response({"message": "If an account exists with this email, a password reset link has been sent."}, status=status.HTTP_200_OK)
 
         return Response({"message": "Invalid email address."}, status=status.HTTP_400_BAD_REQUEST)
-
 
 # ویو تایید بازیابی رمز عبور
 class PasswordResetConfirmAPIView(APIView):
