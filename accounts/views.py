@@ -25,7 +25,8 @@ from rest_framework.permissions import AllowAny
 from rest_framework.decorators import api_view, permission_classes
 logger = logging.getLogger(__name__)
 from django.utils.encoding import force_bytes
-
+from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
+from rest_framework_simplejwt.tokens import AccessToken
 class RegisterAPIView(APIView):
     permission_classes = [AllowAny]
 
@@ -188,57 +189,66 @@ class PasswordResetAPIView(APIView):
 
     def post(self, request):
         email = request.data.get('email')
-        form = PasswordResetForm(data={'email': email})
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({"message": "If an account exists with this email, a password reset link has been sent."}, status=status.HTTP_200_OK)
 
-        if form.is_valid():
-            user = next(form.get_users(email), None)
-            if user:
-                token = default_token_generator.make_token(user)
-                uid = urlsafe_base64_encode(force_bytes(user.pk))
-                reset_link = f'http://localhost:3000/password-reset/{uid}/{token}/'
+        # تولید توکن JWT
+        refresh = RefreshToken.for_user(user)
+        reset_token = str(refresh.access_token)
 
-                # Send email with HTML template
-                email_subject = 'Password Reset'
-                email_message = render_to_string('reset_password_email.html', {
-                    'reset_link': reset_link,
-                    'support_email': 'support@yourdomain.com',
-                    'user_name': user.username,
-                })
+        # لینک بازنشانی رمز عبور
+        reset_link = f'http://localhost:3000/password-reset/{urlsafe_base64_encode(force_bytes(user.pk))}/{reset_token}/'
 
-                send_mail(
-                    email_subject,
-                    '',  # We leave the plain text content empty as we're sending HTML
-                    'no-reply@yourdomain.com',
-                    [user.email],
-                    fail_silently=False,
-                    html_message=email_message  # HTML email content
-                )
+        # ارسال ایمیل
+        email_subject = 'Password Reset'
+        email_message = render_to_string('reset_password_email.html', {
+            'reset_link': reset_link,
+            'support_email': 'support@yourdomain.com',
+            'user_name': user.username,
+        })
 
-                return Response({"message": "Password reset email sent."}, status=status.HTTP_200_OK)
-            else:
-                # We don't want to reveal whether a user exists or not for security reasons
-                return Response({"message": "If an account exists with this email, a password reset link has been sent."}, status=status.HTTP_200_OK)
+        send_mail(
+            email_subject,
+            '',  # محتوای متنی
+            'no-reply@yourdomain.com',
+            [user.email],
+            fail_silently=False,
+            html_message=email_message  # محتوای HTML
+        )
 
-        return Response({"message": "Invalid email address."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"message": "Password reset email sent."}, status=status.HTTP_200_OK)
 
 # ویو تایید بازیابی رمز عبور
 class PasswordResetConfirmAPIView(APIView):
+    permission_classes = [AllowAny]
 
-    def get(self, request, uidb64, token):
+    def post(self, request, uidb64, token):
         try:
-            uid = force_str(urlsafe_base64_decode(uidb64))  # تبدیل رشته به force_str
-            user = User.objects.get(pk=uid)
-            if default_token_generator.check_token(user, token):
-                return Response({"message": "Token is valid. You can reset your password."}, status=status.HTTP_200_OK)
-            else:
-                return Response({"message": "Invalid token."}, status=status.HTTP_400_BAD_REQUEST)
-        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-            return Response({"message": "Invalid token or user does not exist."}, status=status.HTTP_400_BAD_REQUEST)
+            user_id = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=user_id)
 
+            # بررسی توکن JWT
+            try:
+                AccessToken(token)  # بررسی اعتبار توکن
+            except TokenError:
+                return Response({"message": "Token is invalid or expired."}, status=status.HTTP_400_BAD_REQUEST)
+
+            # تنظیم رمز عبور جدید
+            new_password = request.data.get('password')
+            if new_password:
+                user.set_password(new_password)
+                user.save()
+                return Response({"message": "Password has been reset successfully."}, status=status.HTTP_200_OK)
+            else:
+                return Response({"message": "Password not provided."}, status=status.HTTP_400_BAD_REQUEST)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            return Response({"message": "Invalid user."}, status=status.HTTP_400_BAD_REQUEST)
 
 # ویو برای تغییر رمز عبور
 class PasswordChangeAPIView(APIView):
-
+    permission_classes = [AllowAny]
     def post(self, request, uidb64, token):
         password = request.data.get('password')
         try:
