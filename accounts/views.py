@@ -25,8 +25,25 @@ from rest_framework.permissions import AllowAny
 from rest_framework.decorators import api_view, permission_classes
 logger = logging.getLogger(__name__)
 from django.utils.encoding import force_bytes
-from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 from rest_framework_simplejwt.tokens import AccessToken
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework import status
+from datetime import datetime, timezone, timedelta
+from django.utils import timezone
+from datetime import timedelta
+import string
+import random
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.contrib.auth import authenticate
+from .serializers import LoginSerializer
+
+
+
 class RegisterAPIView(APIView):
     permission_classes = [AllowAny]
 
@@ -87,6 +104,18 @@ class RegisterAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+from django.utils import timezone
+from datetime import timedelta
+import string
+import random
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.contrib.auth import authenticate
+from .serializers import LoginSerializer
+
 class LoginAPIView(APIView):
     permission_classes = [AllowAny]
 
@@ -112,9 +141,8 @@ class LoginAPIView(APIView):
 
                     # ذخیره OTP و تاریخ انقضا (10 دقیقه)
                     user.otp = otp
-                    user.otp_expiration = timezone.now() + timedelta(minutes=10)
+                    user.otp_expiration = timezone.now() + timedelta(minutes=10)  # تغییر در این خط
                     user.save()
-
 
                     otp_link = f'http://localhost:8000/api/accounts/login-verify/{otp}/'
                     email_subject = 'Login Attempt - OTP Verification'
@@ -148,6 +176,7 @@ class LoginAPIView(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 
@@ -537,3 +566,43 @@ class ResendOTPAPIView(APIView):
         except Exception as e:
             logger.error(f"Error resending OTP: {e}")
             return Response({"message": "Error sending new OTP."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class RefreshTokenAPIView(APIView):
+    """
+    This view checks the remaining lifetime of the refresh token.
+    If it's close to expiration, it generates a new refresh token along with the access token.
+    Otherwise, only a new access token is issued.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        refresh_token = request.data.get("refresh_token")
+
+        if not refresh_token:
+            return Response({"message": "Refresh token is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Validate the provided refresh token
+            refresh = RefreshToken(refresh_token)
+
+            # Check the expiration time of the refresh token
+            expiration = datetime.fromtimestamp(refresh['exp'], tz=timezone.utc)
+            remaining_time = expiration - datetime.now(timezone.utc)
+
+            # Define threshold for issuing a new refresh token
+            threshold = timedelta(hours=1)  # Issue a new refresh token if less than 1 hour remains
+
+            # Generate tokens
+            new_access_token = str(refresh.access_token)
+            response_data = {"access_token": new_access_token}
+
+            if remaining_time < threshold:
+                # If the remaining time is less than the threshold, issue a new refresh token
+                new_refresh_token = str(refresh)
+                response_data["refresh_token"] = new_refresh_token
+
+            return Response(response_data, status=status.HTTP_200_OK)
+
+        except TokenError:
+            return Response({"message": "Invalid or expired refresh token."}, status=status.HTTP_401_UNAUTHORIZED)
