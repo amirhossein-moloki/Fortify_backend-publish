@@ -11,7 +11,7 @@ class User(AbstractUser):
     is_online = models.BooleanField(default=False, verbose_name="Online Status")
     last_seen = models.DateTimeField(blank=True, null=True, verbose_name="Last Seen")
     profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True,
-                                        verbose_name="Profile Picture")
+                                        verbose_name="Profile Picture", default='profile_pictures/default_profile_picture.jpg')
     bio = models.TextField(blank=True, null=True, verbose_name="Bio")
 
     # فیلدهای جدید برای OTP و تاریخ انقضا

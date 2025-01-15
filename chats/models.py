@@ -21,7 +21,7 @@ class Chat(models.Model):
 
     max_participants = models.IntegerField(default=50)  # حداکثر تعداد اعضا برای گروه‌ها و کانال‌ها
     description = models.TextField(null=True, blank=True)  # توضیحات چت، گروه یا کانال
-    group_image = models.ImageField(upload_to='chat_images/', null=True, blank=True)  # فیلد عکس گروه
+    group_image = models.ImageField(upload_to='chat_images/', null=True, blank=True, default='profile_pictures/default_profile_picture.jpg')  # فیلد عکس گروه
 
     def add_participant(self, user):
         if self.chat_type != 'direct' and self.participants.count() >= self.max_participants:

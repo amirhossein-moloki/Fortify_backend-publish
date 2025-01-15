@@ -1,6 +1,7 @@
 from pathlib import Path
 from datetime import timedelta
 import os
+from urllib.parse import urlparse
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -9,12 +10,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-&y@xqt2dm&)f%ul$#(andc)-_kpjsc9115zv476xh*@ll-z=lz'
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'your-secret-key')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
 
 # Application definition
 INSTALLED_APPS = [
@@ -26,14 +27,16 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'channels',
     'accounts',
-    'rest_framework',  # برای Django REST Framework
-    'rest_framework_simplejwt',  # برای JWT
-    'corsheaders',  # اضافه کردن corsheaders
+    'rest_framework',
+    'rest_framework_simplejwt',
+    'corsheaders',
+    'drf_yasg',
+    'silk',
     'chats',
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',  # اضافه کردن CorsMiddleware
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -41,6 +44,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'silk.middleware.SilkyMiddleware',
 ]
 
 ROOT_URLCONF = 'Fortify_back.urls'
@@ -95,8 +99,7 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = 'static/'
-
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Media files settings
 MEDIA_URL = '/media/'
@@ -116,21 +119,19 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_RATES': {
         'anon': '5/min',
         'user': '10/min',
-        'custom_scope': '20/hour',  # نرخ خاص برای یک ویو خاص
+        'custom_scope': '20/hour',
+        'burst': '30/min',
+        'sustained': '100/day',
     }
 }
 
-# JWT Token Expiry Time Settings (Optional)
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=30),  # مدت زمان اعتبار توکن دسترسی
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=100),     # مدت زمان اعتبار توکن بازنشانی
-    'ROTATE_REFRESH_TOKENS': False,                   # چرخش توکن‌های بازنشانی
-    'BLACKLIST_AFTER_ROTATION': False,                # مسدودسازی توکن‌های بازنشانی بعد از چرخش
-    'ALGORITHM': 'HS256',                             # الگوریتم رمزنگاری
-    'SIGNING_KEY': SECRET_KEY,                        # کلید امضای JWT
-    'VERIFYING_KEY': None,                            # کلید تایید JWT (مربوط به امضا در سرور)
-    'AUDIENCE': None,                                 # مخاطب
-    'ISSUER': None,                                   # صادرکننده
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=30),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=100),
+    'ROTATE_REFRESH_TOKENS': False,
+    'BLACKLIST_AFTER_ROTATION': False,
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
 }
 
 # User model settings
@@ -138,7 +139,7 @@ AUTH_USER_MODEL = 'accounts.User'
 
 # CORS Settings
 CORS_ALLOW_ALL_ORIGINS = True
-CORS_ALLOW_CREDENTIALS = True  # اجازه دادن به کوکی‌ها و اعتبارنامه‌ها
+CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_METHODS = [
     'GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS',
 ]
@@ -146,30 +147,62 @@ CORS_ALLOW_HEADERS = [
     'content-type', 'accept', 'Authorization', 'X-Requested-With', 'Access-Control-Allow-Origin',
 ]
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",  # آدرس فرانت‌اند React
-    "http://127.0.0.1:8000", # دامنه دیگر
-    "http://localhost:5500",
-]
-
-# Media files settings
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
-
 # Channels settings
+redis_url = os.getenv('REDIS_URL', 'redis://127.0.0.1:6379')
+parsed_redis_url = urlparse(redis_url)
+
 CHANNEL_LAYERS = {
     'default': {
-        'BACKEND': 'channels.layers.InMemoryChannelLayer',  # استفاده از InMemoryChannelLayer برای محیط توسعه
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [(parsed_redis_url.hostname, parsed_redis_url.port)],
+            "password": parsed_redis_url.password,
+        },
     },
 }
 
-# Email settings (example for Gmail SMTP)
+# Email settings
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 465
-EMAIL_USE_SSL = True  # استفاده از SSL
-EMAIL_USE_TLS = False  # باید False باشد چون SSL استفاده می‌کنید
-EMAIL_HOST_USER = 'amir.moloki8558@gmail.com'  # ایمیل شما
-EMAIL_HOST_PASSWORD = 'drgzueqzrcupbfyr'  # رمز عبور ایمیل
-DEFAULT_FROM_EMAIL = 'amir.moloki8558@gmail.com'
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = os.getenv('EMAIL_PORT', 465)
+EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'True') == 'True'
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'False') == 'True'
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'your-email@gmail.com')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', 'your-email-password')
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
+# Logging settings
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+        'file': {
+            'level': 'ERROR',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'errors.log',
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+    },
+}
