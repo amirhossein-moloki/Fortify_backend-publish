@@ -1,27 +1,21 @@
+from decouple import config
 from pathlib import Path
 from datetime import timedelta
 import os
 from urllib.parse import urlparse
 
-
-from dotenv import load_dotenv
-
-load_dotenv()
-
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
+SECRET_KEY = config('DJANGO_SECRET_KEY', default='your-secret-key')
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'your-secret-key')
+DEBUG = config('DEBUG', default=False, cast=bool)
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', 'False') == 'True'
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='.onrender.com').split(',')
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '.onrender.com').split(',')
+# Ensure DJANGO_SETTINGS_MODULE is set correctly
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'Fortify_back.settings')
 
 # Application definition
 INSTALLED_APPS = [
@@ -74,9 +68,8 @@ TEMPLATES = [
 ASGI_APPLICATION = "Fortify_back.asgi.application"
 
 # Database
-import dj_database_url
 DATABASES = {
-    'default': dj_database_url.config(default=os.getenv('DATABASE_URL'))
+    'default': dj_database_url.config(default=config('DATABASE_URL'))
 }
 
 # Password validation
@@ -152,7 +145,7 @@ CORS_ALLOW_HEADERS = [
 ]
 
 # Channels settings
-redis_url = os.getenv('REDIS_URL', 'redis://127.0.0.1:6379')
+redis_url = config('REDIS_URL', default='redis://127.0.0.1:6379')
 parsed_redis_url = urlparse(redis_url)
 
 CHANNEL_LAYERS = {
@@ -167,12 +160,12 @@ CHANNEL_LAYERS = {
 
 # Email settings
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
-EMAIL_PORT = int(os.getenv('EMAIL_PORT', 465))
-EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'True') == 'True'
-EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'False') == 'True'
-EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'amir.moloki8558@gmail.com')
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', 'drgzueqzrcupbfyr')
+EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
+EMAIL_PORT = config('EMAIL_PORT', default=465, cast=int)
+EMAIL_USE_SSL = config('EMAIL_USE_SSL', default=True, cast=bool)
+EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=False, cast=bool)
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='amir.moloki8558@gmail.com')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='drgzueqzrcupbfyr')
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 # Logging settings
