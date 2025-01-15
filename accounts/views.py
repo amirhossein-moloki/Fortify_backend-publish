@@ -71,7 +71,7 @@ class RegisterAPIView(APIView):
 
             # Generate the email HTML content
             try:
-                email_message = render_to_string('signup_email.html', {
+                email_message = render_to_string('activation_email.html', {
                     'verification_link': verification_link,
                     'support_email': 'support@example.com',
                     'user_name': user.username,
@@ -146,7 +146,7 @@ class LoginAPIView(APIView):
 
                     otp_link = f'http://localhost:8000/api/accounts/login-verify/{otp}/'
                     email_subject = 'Login Attempt - OTP Verification'
-                    email_message = render_to_string('login_email.html', {
+                    email_message = render_to_string('otp_email.html', {
                         'otp': otp,
                         'user_name': user.username,
                         'otp_link': otp_link,
@@ -501,7 +501,7 @@ class ResendActivationEmailAPIView(APIView):
             forgot_password_url = 'http://yourdomain.com/forgot-password'  # Use https in production
 
             email_subject = 'Fortify - Resend Email Activation'
-            email_message = render_to_string('resend_activation_email.html', {
+            email_message = render_to_string('activation_email.html', {
                 'verification_link': verification_link,
                 'support_email': 'support@example.com',
                 'user_name': user.username,
@@ -544,7 +544,7 @@ class ResendOTPAPIView(APIView):
 
             otp_link = f'http://localhost:8000/api/accounts/login-verify/{otp}/'
             email_subject = 'Fortify - New OTP for Login'
-            email_message = render_to_string('resend_otp_email.html', {
+            email_message = render_to_string('otp_email.html', {
                 'otp': otp,
                 'user_name': user.username,
                 'otp_link': otp_link,
