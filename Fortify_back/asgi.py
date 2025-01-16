@@ -1,21 +1,29 @@
 # اطمینان از بارگذاری کامل تنظیمات Django
-import django
-django.setup()
-
 import os
+import django
 from django.core.asgi import get_asgi_application
 from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.auth import AuthMiddlewareStack
 from django.urls import path
-from chats import consumers  # فرض بر این است که شما از این Consumer برای WebSocket استفاده می‌کنید
+from chats import consumers as chat_consumers  # Consumer برای چت
+from accounts import consumers as status_consumers  # Consumer برای وضعیت کاربران
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'Fortify_back.settings')
+django.setup()
 
+# تعریف برنامه ASGI
 application = ProtocolTypeRouter({
-    "http": get_asgi_application(),  # پیکربندی برای درخواست‌های HTTP
-    "websocket": AuthMiddlewareStack(  # استفاده از AuthMiddlewareStack برای WebSocket
+    # مدیریت درخواست‌های HTTP
+    "http": get_asgi_application(),
+
+    # مدیریت ارتباطات WebSocket
+    "websocket": AuthMiddlewareStack(
         URLRouter([
-            path('ws/chat/<int:chat_id>/', consumers.ChatConsumer.as_asgi()),  # آدرس WebSocket
+            # مسیر WebSocket برای چت
+            path('ws/chat/<int:chat_id>/', chat_consumers.ChatConsumer.as_asgi(), name="chat_websocket"),
+
+            # مسیر WebSocket برای وضعیت کاربران
+            path('ws/status/', status_consumers.StatusConsumer.as_asgi(), name="status_websocket"),
         ])
     ),
 })
