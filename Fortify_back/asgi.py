@@ -1,4 +1,6 @@
-# اطمینان از بارگذاری کامل تنظیمات Django
+import django
+django.setup()
+
 import os
 import django
 from django.core.asgi import get_asgi_application
@@ -23,7 +25,7 @@ application = ProtocolTypeRouter({
             path('ws/chat/<int:chat_id>/', chat_consumers.ChatConsumer.as_asgi(), name="chat_websocket"),
 
             # مسیر WebSocket برای وضعیت کاربران
-            path('ws/status/', status_consumers.StatusConsumer.as_asgi(), name="status_websocket"),
+            path('ws/status/', status_consumers.AccountStatusConsumer.as_asgi(), name="status_websocket"),
         ])
     ),
 })
