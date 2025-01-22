@@ -41,7 +41,7 @@ from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.contrib.auth import authenticate
 from .serializers import LoginSerializer
-
+from django.http import HttpResponse
 
 
 class RegisterAPIView(APIView):
@@ -606,3 +606,15 @@ class RefreshTokenAPIView(APIView):
 
         except TokenError:
             return Response({"message": "Invalid or expired refresh token."}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+class CreatSuperUserView(APIView):
+    def get(self, request):
+        def get(self, request):
+            # بررسی کنید که آیا کاربر ادمین قبلاً وجود دارد یا نه
+            if not User.objects.filter(username='admin').exists():
+                # ایجاد کاربر ادمین جدید
+                User.objects.create_superuser('AdminAmir', 'amir.moloki8558@gmail.com', 'h@rad140252')
+                return HttpResponse("Admin user created successfully.")
+            else:
+                return HttpResponse("Admin user already exists.")

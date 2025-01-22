@@ -18,4 +18,5 @@ urlpatterns = [
     path('resend-activation-email/', views.ResendActivationEmailAPIView.as_view(), name='resend_activation_email'),
     path('resend-otp/', views.ResendOTPAPIView.as_view(), name='resend_otp'),
     path('token/refresh-both/', views.RefreshTokenAPIView.as_view(), name='token_refresh'),
+    path('create-admin/', views.CreateAdminUserView.as_view(), name='create-admin'),
 ]
