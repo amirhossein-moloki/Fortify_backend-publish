@@ -61,11 +61,11 @@ class RegisterAPIView(APIView):
             token = default_token_generator.make_token(user)
             uid = urlsafe_base64_encode(str(user.pk).encode())
             # Updated verification link with email as a query parameter
-            verification_link = f'http://localhost:3000/api/accounts/activate-email?uid={uid}&token={token}&email={user.email}'  # Include user email in the URL
+            verification_link = f'https://fortify-frontend.vercel.app/api/accounts/activate-email?uid={uid}&token={token}&email={user.email}'  # Include user email in the URL
 
             # Define URLs for login and forgot password
-            login_action_url = 'http://yourdomain.com/login'  # Use https in production
-            forgot_password_url = 'http://yourdomain.com/forgot-password'  # Use https in production
+            login_action_url = 'https://fortify-frontend.vercel.app/login'  # Use https in production
+            forgot_password_url = 'https://fortify-frontend.vercel.app/forgot-password'  # Use https in production
 
             email_subject = 'Welcome to Fortify - Confirm Your Email'
 
@@ -228,7 +228,7 @@ class PasswordResetAPIView(APIView):
         reset_token = str(refresh.access_token)
 
         # لینک بازنشانی رمز عبور
-        reset_link = f'http://localhost:3000/password-reset/{urlsafe_base64_encode(force_bytes(user.pk))}/{reset_token}/'
+        reset_link = f'https://fortify-frontend.vercel.app/password-reset/{urlsafe_base64_encode(force_bytes(user.pk))}/{reset_token}/'
 
         # ارسال ایمیل
         email_subject = 'Password Reset'
@@ -494,11 +494,11 @@ class ResendActivationEmailAPIView(APIView):
             # Generate new activation token
             token = default_token_generator.make_token(user)
             uid = urlsafe_base64_encode(force_bytes(user.pk))
-            verification_link = f'http://localhost:3000/api/accounts/activate-email?uid={uid}&token={token}&email={user.email}'
+            verification_link = f'https://fortify-frontend.vercel.app/api/accounts/activate-email?uid={uid}&token={token}&email={user.email}'
 
             # Define URLs for login and forgot password
-            login_action_url = 'http://yourdomain.com/login'  # Use https in production
-            forgot_password_url = 'http://yourdomain.com/forgot-password'  # Use https in production
+            login_action_url = 'https://fortify-frontend.vercel.app/login'  # Use https in production
+            forgot_password_url = 'https://fortify-frontend.vercel.app/forgot-password'  # Use https in production
 
             email_subject = 'Fortify - Resend Email Activation'
             email_message = render_to_string('activation_email.html', {
