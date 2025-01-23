@@ -61,7 +61,7 @@ class RegisterAPIView(APIView):
             token = default_token_generator.make_token(user)
             uid = urlsafe_base64_encode(str(user.pk).encode())
             # Updated verification link with email as a query parameter
-            verification_link = f'https://fortify-frontend.vercel.app/api/accounts/activate-email?uid={uid}&token={token}&email={user.email}'  # Include user email in the URL
+            verification_link = f'https://fortify-frontend.vercel.app/activate-email?uid={uid}&token={token}&email={user.email}'  # Include user email in the URL
 
             # Define URLs for login and forgot password
             login_action_url = 'https://fortify-frontend.vercel.app/login'  # Use https in production
@@ -144,7 +144,7 @@ class LoginAPIView(APIView):
                     user.otp_expiration = timezone.now() + timedelta(minutes=10)  # تغییر در این خط
                     user.save()
 
-                    otp_link = f'http://localhost:8000/api/accounts/login-verify/{otp}/'
+                    otp_link = f'https://fortify-frontend.vercel.app/otp/otp={otp}'
                     email_subject = 'Login Attempt - OTP Verification'
                     email_message = render_to_string('otp_email.html', {
                         'otp': otp,
@@ -542,7 +542,7 @@ class ResendOTPAPIView(APIView):
             user.otp_expiration = timezone.now() + timedelta(minutes=10)
             user.save()
 
-            otp_link = f'http://localhost:8000/api/accounts/login-verify/{otp}/'
+            otp_link = f'https://fortify-frontend.vercel.app/otp/otp={otp}'
             email_subject = 'Fortify - New OTP for Login'
             email_message = render_to_string('otp_email.html', {
                 'otp': otp,
