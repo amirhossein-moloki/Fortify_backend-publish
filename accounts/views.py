@@ -609,6 +609,7 @@ class RefreshTokenAPIView(APIView):
 
 
 class CreatSuperUserView(APIView):
+    permission_classes = [AllowAny]
     def get(self, request):
         def get(self, request):
             # بررسی کنید که آیا کاربر ادمین قبلاً وجود دارد یا نه
