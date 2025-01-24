@@ -51,7 +51,11 @@ class RegisterAPIView(APIView):
         # Validate input data using the serializer
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
+            # Save the user using the serializer
             user = serializer.save()
+
+            # ایجاد پروفایل برای کاربر جدید
+            Profile.objects.create(user=user)
 
             # Generate JWT tokens
             refresh = RefreshToken.for_user(user)
