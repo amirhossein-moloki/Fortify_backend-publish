@@ -51,13 +51,9 @@ Ensure you have the following installed:
    DEBUG=True
    DJANGO_SECRET_KEY=your-secret-key
    DJANGO_SETTINGS_MODULE=fortify.settings
-   EMAIL_HOST=smtp.example.com
-   EMAIL_HOST_USER=your-email@example.com
-   EMAIL_HOST_PASSWORD=your-email-password
-   EMAIL_PORT=587
-   EMAIL_USE_SSL=False
-   EMAIL_USE_TLS=True
    REDIS_URL=redis://localhost:6379/0
+   PORT=8000  # Add this line for the port you're using with Gunicorn
+
    ```
    Replace each value with the correct settings for your environment. Be sure to configure the Redis and PostgreSQL servers before proceeding.
 
@@ -74,15 +70,19 @@ Ensure you have the following installed:
    EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
    DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
    ```
+6. **Create migration files**:
+   ```bash
+   python manage.py makemigrations
+   ```
 
-6. **Run database migrations**:
+7. **Run database migrations**:
    ```bash
    python manage.py migrate
    ```
 
-7. **Start the Django development server**:
+8. **Start the Django development server**:
    ```bash
-   python manage.py runserver
+   gunicorn Fortify_back.asgi:application --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
    ```
 
 ---
